@@ -42,7 +42,7 @@ blog-agent/
    ```
 2. 의존성 설치 (uv 사용 권장)
    ```bash
-   uv sync
+   uv add -r requirements.txt
    ```
 3. Streamlit 앱 실행
    ```bash
