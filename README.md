@@ -1,4 +1,4 @@
-# Blog Agent: 네이버 블로그 멀티에이전트 자동 생성기
+# Blog Agent: 네이버 블로그 생성기
 
 ## 소개
 Blog Agent는 LangGraph, LangChain, OpenAI, Streamlit 등 최신 AI/LLM 프레임워크를 활용하여 네이버 블로그 포스트를 자동으로 생성하는 멀티에이전트 파이프라인 프로젝트입니다. 
@@ -48,6 +48,21 @@ blog-agent/
    ```bash
    uv run streamlit run main.py
    ```
+
+
+## 기여 방법
+
+1. 이 저장소를 포크(Fork)하세요.
+2. 새로운 브랜치에서 기능 추가 또는 버그 수정을 진행하세요.
+3. 변경 사항을 커밋한 후, 원격 저장소에 푸시하세요.
+4. Pull Request(PR)를 생성해 주세요.
+5. PR에는 변경 목적, 주요 변경점, 테스트 방법 등을 명확히 작성해 주세요.
+
+기여 전 최신 `master` 브랜치와 동기화(sync)하는 것을 권장합니다.
+
+이슈나 개선 제안도 언제든 환영합니다!   
+소통방 : https://open.kakao.com/o/gbTuFgOh
+
 
 
 ## 참고
