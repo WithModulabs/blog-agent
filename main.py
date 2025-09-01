@@ -277,18 +277,30 @@ def build_graph():
 def main():
     st.set_page_config(page_title="🤖 네이버 블로그 포스팅 자동 생성기", layout="wide", initial_sidebar_state="expanded")
     
-    # 사이드바에 OpenAI API Key 입력 창 추가
+    # 사이드바에 API Key 입력 창 추가
     with st.sidebar:
         st.header("⚙️ API 설정")
-        api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
         
-        if st.button("💾 API Key 저장"):
-            if api_key:
-                st.session_state["openai_api_key"] = api_key
-                os.environ["OPENAI_API_KEY"] = api_key
-                st.success("✅ API Key가 저장되었습니다!")
+        openai_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
+        tavily_key = st.text_input("Tavily API Key", type="password", value=st.session_state.get("tavily_api_key", ""))
+        
+        if st.button("💾 API Keys 저장"):
+            success_count = 0
+            
+            if openai_key:
+                st.session_state["openai_api_key"] = openai_key
+                os.environ["OPENAI_API_KEY"] = openai_key
+                success_count += 1
+            
+            if tavily_key:
+                st.session_state["tavily_api_key"] = tavily_key
+                os.environ["TAVILY_API_KEY"] = tavily_key
+                success_count += 1
+            
+            if success_count > 0:
+                st.success(f"✅ {success_count}개의 API Key가 저장되었습니다!")
             else:
-                st.warning("⚠️ API Key를 입력해주세요.")
+                st.warning("⚠️ 최소 하나의 API Key를 입력해주세요.")
     
     st.title("🤖 네이버 블로그 포스팅 자동 생성기")
     st.markdown("""
@@ -301,6 +313,18 @@ def main():
     if st.button("🚀 블로그 글 생성 시작!"):
         if not url:
             st.warning("URL을 입력해주세요.")
+            return
+        
+        # API Key 유효성 검사 (사이드바에서 입력한 키만 확인)
+        current_openai_key = st.session_state.get("openai_api_key", "")
+        current_tavily_key = st.session_state.get("tavily_api_key", "")
+        
+        if not current_openai_key.strip():
+            st.error("❌ OpenAI API Key가 필요합니다. 사이드바에서 API Key를 입력하고 저장해주세요.")
+            return
+        
+        if not current_tavily_key.strip():
+            st.error("❌ Tavily API Key가 필요합니다. 사이드바에서 API Key를 입력하고 저장해주세요.")
             return
 
         with st.spinner("AI 멀티에이전트가 작업을 시작합니다... 잠시만 기다려주세요."):
