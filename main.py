@@ -275,7 +275,21 @@ def build_graph():
 
 # --- 6. 스트림릿 UI ---
 def main():
-    st.set_page_config(page_title="🤖 네이버 블로그 포스팅 자동 생성기", layout="wide")
+    st.set_page_config(page_title="🤖 네이버 블로그 포스팅 자동 생성기", layout="wide", initial_sidebar_state="expanded")
+    
+    # 사이드바에 OpenAI API Key 입력 창 추가
+    with st.sidebar:
+        st.header("⚙️ API 설정")
+        api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
+        
+        if st.button("💾 API Key 저장"):
+            if api_key:
+                st.session_state["openai_api_key"] = api_key
+                os.environ["OPENAI_API_KEY"] = api_key
+                st.success("✅ API Key가 저장되었습니다!")
+            else:
+                st.warning("⚠️ API Key를 입력해주세요.")
+    
     st.title("🤖 네이버 블로그 포스팅 자동 생성기")
     st.markdown("""
     **참고할 기사나 블로그 글의 URL을 입력**하면, AI 에이전트들이 협력하여 **네이버 SEO에 최적화된 블로그 포스트**를 자동으로 만들어 드립니다. 
