@@ -385,7 +385,7 @@ dependencies = [
     { name = "python-json-logger" },
     { name = "pyusb" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
-    { name = "pywinpty", marker = "os_name == 'nt' or sys_platform == 'win32'" },
+    { name = "pywinpty", marker = "sys_platform == 'win32'" },
     { name = "pyyaml" },
     { name = "pyzmq" },
     { name = "referencing" },
@@ -553,7 +553,7 @@ requires-dist = [
     { name = "python-json-logger", specifier = "==3.3.0" },
     { name = "pyusb", specifier = "==1.2.1" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = "==310" },
-    { name = "pywinpty", marker = "os_name == 'nt' or sys_platform == 'win32'", specifier = "==2.0.15" },
+    { name = "pywinpty", marker = "sys_platform == 'win32'", specifier = "==2.0.15" },
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "pyzmq", specifier = "==26.4.0" },
     { name = "referencing", specifier = "==0.36.2" },
@@ -1157,7 +1157,7 @@ name = "ipykernel"
 version = "6.29.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "appnope", marker = "os_name != 'nt' and sys_platform == 'darwin'" },
+    { name = "appnope", marker = "sys_platform == 'darwin'" },
     { name = "comm" },
     { name = "debugpy" },
     { name = "ipython" },
@@ -2317,7 +2317,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess", marker = "sys_platform != 'win32'" },
+    { name = "ptyprocess" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
