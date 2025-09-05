@@ -390,6 +390,7 @@ dependencies = [
     { name = "pyusb" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "pywinpty", marker = "os_name == 'nt' or sys_platform == 'win32'" },
+    { name = "pywinpty", marker = "sys_platform == 'win32'" },
     { name = "pyyaml" },
     { name = "pyzmq" },
     { name = "referencing" },

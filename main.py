@@ -10,10 +10,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.graph import StateGraph, END
-
 # --- 1. 환경 설정 ---
-# .env 파일에서 API 키 로드
+# .env 파일에서 API 키 로드 (가장 먼저 실행되어야 함)
 load_dotenv()
+
+# TAVILY API 키 (로드된 환경 변수 또는 후에 사이드바에서 설정될 수 있음)
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 # LangSmith 추적 설정 (선택 사항) - 비활성화
 # os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -22,7 +24,8 @@ load_dotenv()
 
 # --- 2. 도구 정의 ---
 # Tavily를 사용한 웹 검색 도구
-tavily_tool = TavilySearchResults(max_results=5)
+# 주의: 실행 시점에 API 키가 설정되어 있어야 하므로 모듈 수준에서 즉시 인스턴스화하지 않습니다.
+# 대신 `seo_specialist_node` 내에서 현재 환경 또는 세션 상태의 키를 사용해 인스턴스화합니다.
 
 # URL 콘텐츠 스크래핑 도구
 def scrape_web_content(url: str) -> str:
@@ -61,8 +64,32 @@ class AgentState(TypedDict):
     messages: List[BaseMessage]
 
 # --- 4. 에이전트 및 노드 정의 ---
-# LLM 모델 초기화
-llm = ChatOpenAI(model="gpt-5", temperature=0.7)
+# LLM 인스턴스를 안전하게 생성하는 헬퍼
+def get_llm(model: str = "gpt-5", temperature: float = 0.7):
+    """세션 상태 또는 환경변수에서 OpenAI API 키를 확인하고 ChatOpenAI 인스턴스를 반환합니다.
+    키가 없으면 None을 반환합니다. 호출자는 None 반환을 검사해야 합니다.
+    """
+    # 세션에 저장된 키가 있으면 환경변수로 설정
+    try:
+        sess_key = st.session_state.get("openai_api_key")
+    except Exception:
+        sess_key = None
+
+    if sess_key:
+        os.environ["OPENAI_API_KEY"] = sess_key
+
+    if not os.environ.get("OPENAI_API_KEY"):
+        # 키가 없으면 인스턴스화 하지 않음
+        return None
+
+    try:
+        return ChatOpenAI(model=model, temperature=temperature)
+    except Exception as e:
+        try:
+            st.error(f"OpenAI LLM 초기화 실패: {e}")
+        except Exception:
+            pass
+        return None
 
 # 4.1. 리서처 에이전트 (URL 스크래핑)
 def researcher_node(state: AgentState):
@@ -96,7 +123,26 @@ def seo_specialist_node(state: AgentState):
     
     # 네이버 SEO 트렌드 검색
     search_query = "2025년 네이버 블로그 SEO 최적화 전략"
-    seo_trends = tavily_tool.invoke({"query": search_query})
+
+    # Tavily API 키 확인 (우선순위: 세션 상태 -> 환경 변수)
+    tavily_api_key = os.environ.get("TAVILY_API_KEY") or state.get('messages', {}).get('tavily_api_key') if isinstance(state.get('messages'), dict) else None
+    # 스트림릿 사이드바에서 저장된 경우 세션_state에 있을 수 있음
+    try:
+        tavily_api_key = tavily_api_key or st.session_state.get("tavily_api_key")
+    except Exception:
+        pass
+
+    if not tavily_api_key:
+        st.error("❌ Tavily API Key가 설정되어 있지 않습니다. 사이드바에서 'Tavily API Key'를 입력하고 저장해주세요.")
+        return {"seo_analysis": "Tavily API Key 없음", "seo_tags": []}
+
+    # Tavily 도구 인스턴스화
+    try:
+        tavily_tool = TavilySearchResults(max_results=5, tavily_api_key=tavily_api_key)
+        seo_trends = tavily_tool.invoke({"query": search_query})
+    except Exception as e:
+        st.error(f"Tavily 검색 도구 초기화 또는 호출 중 오류 발생: {e}")
+        seo_trends = ""
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", 
@@ -125,6 +171,11 @@ def seo_specialist_node(state: AgentState):
          "**분석할 원본 콘텐츠:**\n{scraped_content}"),
     ])
     
+    llm = get_llm()
+    if llm is None:
+        st.error("❌ OpenAI API Key가 설정되어 있지 않거나 LLM을 초기화할 수 없습니다. 사이드바에서 OpenAI API Key를 입력하고 저장해주세요.")
+        return {"seo_analysis": "LLM 없음", "seo_tags": []}
+
     chain = prompt | llm
     # Pass variables to the prompt template
     response = chain.invoke({
@@ -170,6 +221,11 @@ def writer_node(state: AgentState):
          "**참고할 원본 콘텐츠:**\n{scraped_content}"),
     ])
     
+    llm = get_llm()
+    if llm is None:
+        st.error("❌ OpenAI API Key가 설정되어 있지 않거나 LLM을 초기화할 수 없습니다. 사이드바에서 OpenAI API Key를 입력하고 저장해주세요.")
+        return {"draft_post": "LLM 없음", "final_title": "", "final_subheadings": []}
+
     title_chain = title_prompt | llm
     main_title = title_chain.invoke({
         "seo_analysis": seo_analysis,
@@ -225,7 +281,10 @@ def art_director_node(state: AgentState):
     draft_post = state['draft_post']
 
     # DALL-E 프롬프트 생성
-    prompt_generator_llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+    prompt_generator_llm = get_llm(model="gpt-4o", temperature=0.7)
+    if prompt_generator_llm is None:
+        st.error("❌ OpenAI API Key가 설정되어 있지 않거나 LLM을 초기화할 수 없습니다. 사이드바에서 OpenAI API Key를 입력하고 저장해주세요.")
+        return {"image_prompt": "", "image_url": "이미지 생성 실패 - LLM 없음"}
     prompt_template = ChatPromptTemplate.from_messages([
         ("system", "당신은 창의적인 아트 디렉터입니다. 블로그 포스트의 제목과 내용을 바탕으로, DALL-E 3가 이미지를 생성할 수 있는 가장 효과적이고 상세한 영어 프롬프트를 한 문장으로 생성해야 합니다."),
         ("human", f"블로그 제목: {title}\n\n블로그 내용 요약:\n{draft_post[:500]}\n\n위 내용을 대표할 수 있는 이미지 프롬프트를 영어로 만들어주세요.")

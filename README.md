@@ -40,9 +40,11 @@ blog-agent/
    TAVILY_API_KEY=tvly-...
    # (필요시) LANGCHAIN_API_KEY=...
    ```
-2. 의존성 설치 (uv 사용 권장)
-   ```bash
-   uv add -r requirements.txt
+2. 가상환경 생성 및 의존성 설치 (uv 사용 권장)
+   ```powershell
+   uv venv
+   .\.venv\Scripts\Activate.ps1
+   uv sync
    ```
 3. Streamlit 앱 실행
    ```bash
