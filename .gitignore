@@ -10,6 +10,71 @@ wheels/
 .venv
 
 .env
+.env.local
 
 .idea/
 .claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Jupyter Notebook & JupyterLab
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+.jupyter/
+jupyter_notebook_config.py
+.jupyterlab/
+jupyterlab_config.py
+.jupyterlab-workspace*
+jupyter_server_config.py
+
+# JupyterLab specific
+.jupyterlab/workspaces/
+.jupyterlab/settings/
+share/jupyter/
+.local/share/jupyter/
+
+# Jupyter execution and output
+.virtual_documents/
+*.nbconvert.ipynb
+.nbautoeval/
+
+# Temporary notebook files
+Untitled*.ipynb
+untitled*.ipynb
+Untitled Folder*/
+*-Copy*.ipynb
+
+# Jupyter kernel files
+kernel-*.json
+.ipython/
+profile_default/
+ipython_config.py
+
+# Jupyter widgets
+.jupyter-widgets/
+jupyter-widgets-controls/
+
+# Jupyter server
+.jupyter_server_config.json
+.jupyter_server_config.py
+
+# JupyterHub
+jupyterhub_config.py
+jupyterhub.sqlite
+jupyterhub_cookie_secret
+
+# nbextensions
+.jupyter/nbextensions/
+.jupyter/nbconfig/
+
+# Voila
+.voila/
+
+# Jupyter book
+_build/
+.jupyter_cache/
+
+# Jupyter LSP
+.jupyter_lsp/
