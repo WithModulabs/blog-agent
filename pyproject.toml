@@ -76,6 +76,7 @@ dependencies = [
     "jupyterlab-widgets==3.0.15",
     "kiwisolver==1.4.7",
     "langchain>=0.3.27",
+    "langchain-anthropic>=0.3.19",
     "langchain-community>=0.3.27",
     "langchain-core==0.3.74",
     "langchain-google-genai>=2.1.9",
