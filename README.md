@@ -48,7 +48,7 @@ blog-agent/
    ```
 3. Streamlit 앱 실행
    ```bash
-   uv run streamlit run main.py
+   uv run streamlit run app.py
    ```
 
 
