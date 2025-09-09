@@ -29,7 +29,7 @@ def researcher_node(state: AgentState):
     url = state['url']
     scraped_content = scrape_web_content(url)
     
-    failure_keywords = ["오류 발생", "추출할 수 없습니다", "스크랩이 금지된 글입니다"]
+    failure_keywords = ["오류 발생", "추출할 수 없습니다", "스크랩이 금지된 글"] 
     
     if any(keyword in scraped_content for keyword in failure_keywords):
         st.error(f"⚠️ {scraped_content}")
