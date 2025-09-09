@@ -9,6 +9,7 @@ from requests.exceptions import SSLError
 
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_anthropic import ChatAnthropic
 
 # LLM 인스턴스를 안전하게 생성하는 헬퍼
 def get_llm(temperature: float = 0.7):
@@ -41,6 +42,21 @@ def get_llm(temperature: float = 0.7):
         except Exception as e:
             st.error(f"Gemini LLM 초기화 실패: {e}")
             return None
+    elif model_provider == "Claude":
+        api_key = st.session_state.get("anthropic_api_key")
+        if not api_key:
+            st.error("Anthropic API Key가 설정되지 않았습니다.")
+            return None
+        try:
+            return ChatAnthropic(
+                model="claude-sonnet-4-20250514",
+                api_key=api_key,
+                temperature=temperature,
+            )
+        except Exception as e:
+            st.error(f"Claude LLM 초기화 실패: {e}")
+            return None
+    
     return None
 
 def scrape_web_content(url: str) -> str:

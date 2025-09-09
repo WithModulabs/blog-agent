@@ -22,13 +22,14 @@ def main():
         # 모델 선택
         model_provider = st.selectbox(
             "사용할 LLM 모델을 선택하세요",
-            ("OpenAI", "Gemini"),
+            ("OpenAI", "Gemini", "Claude"),
             key="model_provider"
         )
         
         # API 키 입력
         openai_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", os.getenv("OPENAI_API_KEY") or ""))
         gemini_key = st.text_input("Google API Key", type="password", value=st.session_state.get("gemini_api_key", os.getenv("GEMINI_API_KEY") or ""))
+        anthropic_key = st.text_input("Anthropic API Key", type="password", value=st.session_state.get("anthropic_api_key", os.getenv("ANTHROPIC_API_KEY") or ""))
         tavily_key = st.text_input("Tavily API Key", type="password", value=st.session_state.get("tavily_api_key", os.getenv("TAVILY_API_KEY") or ""))
         
         if st.button("💾 API Keys 저장"):
@@ -38,7 +39,8 @@ def main():
             # 키 저장 로직
             keys_to_save = {
                 "OPENAI_API_KEY": openai_key, 
-                "GEMINI_API_KEY": gemini_key, 
+                "GEMINI_API_KEY": gemini_key,
+                "ANTHROPIC_API_KEY": anthropic_key,
                 "TAVILY_API_KEY": tavily_key
             }
             saved_count = 0
@@ -67,7 +69,7 @@ def main():
             return
 
         # 필수 API 키 확인
-        required_key = "openai_api_key" if st.session_state.model_provider == "OpenAI" else "gemini_api_key"
+        required_key = "openai_api_key" if st.session_state.model_provider == "OpenAI" else ("gemini_api_key" if st.session_state.model_provider == "Gemini" else "anthropic_api_key")
         if not st.session_state.get(required_key):
             st.error(f"❌ {st.session_state.model_provider} API Key가 필요합니다. 사이드바에서 입력 후 저장해주세요.")
             return
