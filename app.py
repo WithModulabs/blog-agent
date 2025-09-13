@@ -99,13 +99,40 @@ def main():
 
         st.subheader("📝 추천 제목")
         st.code(final_state.get('final_title', '제목 생성 실패'), language=None)
+        
+        st.subheader("📋 네이버 SEO 최적화 부제목")
+        subtitles = final_state.get('naver_seo_subtitles', [])
+        if subtitles:
+            # 부제목을 텍스트 영역에 한번에 표시
+            all_subtitles = "\n".join([f"{i}. {subtitle}" for i, subtitle in enumerate(subtitles[:5], 1)])
+            st.text_area("생성된 부제목 (전체 선택 후 복사)", value=all_subtitles, height=150, key="all_subtitles")
+            
+            # 개별 부제목 표시
+            st.write("**개별 부제목:**")
+            for i, subtitle in enumerate(subtitles[:5], 1):
+                with st.expander(f"부제목 {i}"):
+                    st.text_area(f"부제목 {i}", value=subtitle, height=68, key=f"subtitle_{i}", label_visibility="collapsed")
+        else:
+            st.info("부제목이 생성되지 않았습니다.")
 
         st.subheader("🔖 추천 태그")
         tags_str = ", ".join([f"#{tag}" for tag in final_state.get('seo_tags', []) if tag])
         st.code(tags_str, language=None)
         
         st.subheader("✍️ 완성된 블로그 포스트 (마크다운)")
-        st.markdown(final_state.get('draft_post', '포스트 생성 실패'))
+        blog_content = final_state.get('draft_post', '포스트 생성 실패')
+        
+        # 복사 가능한 텍스트 영역으로 블로그 포스트 표시
+        st.text_area(
+            "전체 선택 후 복사하세요 (Ctrl+A → Ctrl+C)", 
+            value=blog_content, 
+            height=400,
+            key="blog_post_copy"
+        )
+        
+        # 마크다운 미리보기
+        with st.expander("📖 마크다운 미리보기"):
+            st.markdown(blog_content)
 
         with st.expander("🤖 에이전트 작업 상세 내용 보기"):
             st.write("**SEO 전문가 분석:**")

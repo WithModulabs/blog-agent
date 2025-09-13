@@ -19,6 +19,7 @@ class AgentState(TypedDict):
     draft_post: str
     final_title: str
     final_subheadings: List[str]
+    naver_seo_subtitles: List[str]
     image_prompt: str
     image_url: str
     messages: List[BaseMessage]
@@ -108,13 +109,41 @@ def writer_node(state: AgentState):
     
     llm = get_llm()
     if llm is None:
-        return {"draft_post": "LLM 없음", "final_title": "", "final_subheadings": []}
+        return {"draft_post": "LLM 없음", "final_title": "", "final_subheadings": [], "naver_seo_subtitles": []}
 
     title_chain = title_prompt | llm
     main_title = title_chain.invoke({
         "seo_analysis": seo_analysis,
         "scraped_content": scraped_content[:2000]
     }).content.strip().replace('"', '')
+
+    # 네이버 SEO 최적화 부제목 생성
+    subtitle_prompt = ChatPromptTemplate.from_template(
+        """다음 블로그 제목과 SEO 분석을 바탕으로, 네이버 블로그 SEO에 최적화된 부제목 5개를 생성해주세요.
+        
+        **네이버 블로그 부제목 작성 가이드:**
+        - 검색 키워드가 자연스럽게 포함되도록 작성
+        - 클릭을 유도하는 매력적인 문구 사용 (예: "꼭 알아야 할", "완벽 가이드", "실제 후기")
+        - 구체적인 숫자나 시간 표현 포함 (예: "3가지 방법", "10분 만에", "2025년 최신")
+        - 감정적 어필이나 호기심 유발 요소 추가
+        - 20-30자 내외로 적절한 길이 유지
+        - 각 부제목은 서로 다른 관점이나 측면을 다루도록 구성
+        
+        각 부제목은 한 줄씩 번호 없이 출력하세요.
+        
+        **메인 제목:** {main_title}
+        
+        **SEO 분석:**
+        {seo_analysis}"""
+    )
+    
+    subtitle_chain = subtitle_prompt | llm
+    subtitle_response = subtitle_chain.invoke({
+        "main_title": main_title,
+        "seo_analysis": seo_analysis
+    }).content
+    
+    naver_seo_subtitles = [line.strip() for line in subtitle_response.split('\n') if line.strip() and not line.strip().startswith('**')]
 
     draft_prompt = ChatPromptTemplate.from_messages([
         ("system", "당신은 전문 블로그 작가입니다. 주어진 제목, SEO 분석, 원본 콘텐츠를 바탕으로 이모지를 활용하여 친근한 어조의 매력적인 네이버 블로그 포스트를 마크다운 형식으로 작성해주세요. 내용은 서론, 본론(소제목 ## 사용), 결론으로 구성해주세요."),
@@ -127,7 +156,7 @@ def writer_node(state: AgentState):
     subheadings = [line.replace('## ', '').strip() for line in draft_post.split('\n') if line.startswith('## ')]
             
     st.success("✅ 작성가 에이전트: 포스트 초안 작성 완료!")
-    return {"draft_post": draft_post, "final_title": main_title, "final_subheadings": subheadings}
+    return {"draft_post": draft_post, "final_title": main_title, "final_subheadings": subheadings, "naver_seo_subtitles": naver_seo_subtitles}
 
 def art_director_node(state: AgentState):
     st.write("▶️ 아트 디렉터 에이전트: 대표 이미지 생성 중...")
