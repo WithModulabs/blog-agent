@@ -22,7 +22,7 @@ def get_llm(temperature: float = 0.7):
             return None
         os.environ["OPENAI_API_KEY"] = api_key
         try:
-            return ChatOpenAI(model="gpt-4o", temperature=temperature)
+            return ChatOpenAI(model="gpt-5", temperature=temperature)
         except Exception as e:
             st.error(f"OpenAI LLM 초기화 실패: {e}")
             return None
