@@ -22,6 +22,9 @@ class AgentState(TypedDict):
     naver_seo_subtitles: List[str]
     image_prompt: str
     image_url: str
+    subtitle_image_prompts: List[str]
+    subtitle_image_urls: List[str]
+    image_keywords: List[str]
     messages: List[BaseMessage]
 
 # --- 에이전트 및 노드 정의 ---
@@ -159,35 +162,81 @@ def writer_node(state: AgentState):
     return {"draft_post": draft_post, "final_title": main_title, "final_subheadings": subheadings, "naver_seo_subtitles": naver_seo_subtitles}
 
 def art_director_node(state: AgentState):
-    st.write("▶️ 아트 디렉터 에이전트: 대표 이미지 생성 중...")
+    st.write("▶️ 아트 디렉터 에이전트: 이미지 생성 중...")
     title = state['final_title']
+    subtitles = state.get('naver_seo_subtitles', [])
     
     # 이미지 생성을 위해서는 OpenAI 키가 반드시 필요
     if not st.session_state.get("openai_api_key"):
         st.warning("⚠️ 이미지 생성(DALL-E)을 위해서는 OpenAI API Key가 필요합니다.")
-        return {"image_prompt": "", "image_url": ""}
+        return {"image_prompt": "", "image_url": "", "subtitle_image_prompts": [], "subtitle_image_urls": [], "image_keywords": []}
 
     # 이미지 프롬프트 생성은 사용자가 선택한 LLM 사용
     prompt_generator_llm = get_llm()
     if prompt_generator_llm is None:
-        return {"image_prompt": "", "image_url": ""}
-        
-    prompt_template = ChatPromptTemplate.from_template("블로그 제목 '{title}'에 어울리는 DALL-E 3 이미지 생성용 영어 프롬프트를 한 문장으로 만들어줘.")
-    chain = prompt_template | prompt_generator_llm
-    image_prompt = chain.invoke({"title": title}).content
+        return {"image_prompt": "", "image_url": "", "subtitle_image_prompts": [], "subtitle_image_urls": [], "image_keywords": []}
 
+    # 키워드 추출
+    keyword_template = ChatPromptTemplate.from_template(
+        "다음 블로그 제목에서 핵심 키워드 2개를 추출해주세요. 언더스코어(_)로 연결해서 출력하세요.\n"
+        "예: '맛집_후기' 또는 '여행_팁' 형식으로\n"
+        "제목: {title}"
+    )
+    keyword_chain = keyword_template | prompt_generator_llm
+    keywords_response = keyword_chain.invoke({"title": title}).content.strip()
+    image_keywords = [kw.strip() for kw in keywords_response.split('_')[:2]]
+    
     try:
-        # 이미지 생성은 OpenAI 클라이언트 직접 사용
         client = OpenAI(api_key=st.session_state.get("openai_api_key"))
-        response = client.images.generate(
-            model="dall-e-3", prompt=image_prompt, size="1024x1024", quality="standard", n=1,
+        
+        # 1. 메인 이미지 생성 (제목 기반)
+        st.write("  📸 메인 이미지 생성 중...")
+        main_prompt_template = ChatPromptTemplate.from_template("블로그 제목 '{title}'에 어울리는 DALL-E 3 이미지 생성용 영어 프롬프트를 한 문장으로 만들어줘.")
+        main_chain = main_prompt_template | prompt_generator_llm
+        main_image_prompt = main_chain.invoke({"title": title}).content
+        
+        main_response = client.images.generate(
+            model="dall-e-3", prompt=main_image_prompt, size="1024x1024", quality="standard", n=1
         )
-        image_url = response.data[0].url
-        st.success("✅ 아트 디렉터 에이전트: 이미지 생성 완료!")
-        return {"image_prompt": image_prompt, "image_url": image_url}
+        main_image_url = main_response.data[0].url
+        
+        # 2. 부제목 기반 이미지 3개 생성
+        st.write("  🎨 부제목 기반 이미지 3개 생성 중...")
+        subtitle_prompts = []
+        subtitle_urls = []
+        
+        for i, subtitle in enumerate(subtitles[:3], 1):
+            st.write(f"    • 이미지 {i+1} 생성 중...")
+            subtitle_prompt_template = ChatPromptTemplate.from_template(
+                "블로그 부제목 '{subtitle}'에 어울리는 DALL-E 3 이미지 생성용 영어 프롬프트를 한 문장으로 만들어줘."
+            )
+            subtitle_chain = subtitle_prompt_template | prompt_generator_llm
+            subtitle_image_prompt = subtitle_chain.invoke({"subtitle": subtitle}).content
+            subtitle_prompts.append(subtitle_image_prompt)
+            
+            subtitle_response = client.images.generate(
+                model="dall-e-3", prompt=subtitle_image_prompt, size="1024x1024", quality="standard", n=1
+            )
+            subtitle_urls.append(subtitle_response.data[0].url)
+        
+        st.success("✅ 아트 디렉터 에이전트: 총 4개 이미지 생성 완료!")
+        return {
+            "image_prompt": main_image_prompt, 
+            "image_url": main_image_url,
+            "subtitle_image_prompts": subtitle_prompts,
+            "subtitle_image_urls": subtitle_urls,
+            "image_keywords": image_keywords
+        }
+        
     except Exception as e:
         st.error(f"이미지 생성 실패: {e}")
-        return {"image_prompt": image_prompt, "image_url": ""}
+        return {
+            "image_prompt": main_image_prompt if 'main_image_prompt' in locals() else "", 
+            "image_url": "",
+            "subtitle_image_prompts": [],
+            "subtitle_image_urls": [],
+            "image_keywords": image_keywords
+        }
 
 # --- 그래프 빌드 ---
 def should_continue(state: AgentState):
