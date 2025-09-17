@@ -3,7 +3,7 @@ from typing import List, TypedDict
 
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_tavily import TavilySearch
 from langgraph.graph import StateGraph, END
 from openai import OpenAI
 
@@ -58,8 +58,15 @@ def seo_specialist_node(state: AgentState):
         return {"scraping_status": "Failure", "seo_analysis": "Tavily API Key 없음", "seo_tags": []}
 
     try:
-        tavily_tool = TavilySearchResults(max_results=3, tavily_api_key=tavily_api_key)
-        seo_trends = tavily_tool.invoke({"query": search_query})
+        tavily_tool = TavilySearch(max_results=3, tavily_api_key=tavily_api_key)
+        search_results = tavily_tool.invoke({"query": search_query})
+        # Extract content from search results
+        seo_trends = ""
+        if search_results and "results" in search_results:
+            for result in search_results["results"]:
+                seo_trends += f"제목: {result.get('title', '')}\n내용: {result.get('content', '')}\n\n"
+        else:
+            seo_trends = "검색 결과를 찾을 수 없습니다."
     except Exception as e:
         st.error(f"Tavily 검색 오류: {e}")
         seo_trends = ""
@@ -150,11 +157,15 @@ def writer_node(state: AgentState):
 
     draft_prompt = ChatPromptTemplate.from_messages([
         ("system", "당신은 전문 블로그 작가입니다. 주어진 제목, SEO 분석, 원본 콘텐츠를 바탕으로 이모지를 활용하여 친근한 어조의 매력적인 네이버 블로그 포스트를 마크다운 형식으로 작성해주세요. 내용은 서론, 본론(소제목 ## 사용), 결론으로 구성해주세요."),
-        ("human", f"**제목:** {main_title}\n\n**SEO 분석:**\n{seo_analysis}\n\n**원본 콘텐츠:**\n{scraped_content[:4000]}"),
+        ("human", "**제목:** {main_title}\n\n**SEO 분석:**\n{seo_analysis}\n\n**원본 콘텐츠:**\n{scraped_content}"),
     ])
     
     draft_chain = draft_prompt | llm
-    draft_post = draft_chain.invoke({}).content
+    draft_post = draft_chain.invoke({
+        "main_title": main_title,
+        "seo_analysis": seo_analysis,
+        "scraped_content": scraped_content[:4000]
+    }).content
     
     subheadings = [line.replace('## ', '').strip() for line in draft_post.split('\n') if line.startswith('## ')]
             

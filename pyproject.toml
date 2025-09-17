@@ -81,6 +81,7 @@ dependencies = [
     "langchain-core==0.3.74",
     "langchain-google-genai>=2.1.9",
     "langchain-openai>=0.3.30",
+    "langchain-tavily>=0.1.5",
     "langgraph==0.6.5",
     "langgraph-checkpoint==2.1.1",
     "langgraph-prebuilt==0.6.4",
