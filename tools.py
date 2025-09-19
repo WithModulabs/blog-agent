@@ -1,17 +1,16 @@
-# tools.py
-
 import os
 import requests
 import streamlit as st
-import urllib3
 from bs4 import BeautifulSoup
-from requests.exceptions import SSLError
+from requests.exceptions import SSLError, RequestException
 
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
+import trafilatura
+from urllib.parse import urlparse, urljoin, parse_qs
 
-# LLM 인스턴스를 안전하게 생성하는 헬퍼
+
 def get_llm(temperature: float = 0.7):
     model_provider = st.session_state.get("model_provider", "OpenAI")
     
@@ -42,6 +41,7 @@ def get_llm(temperature: float = 0.7):
         except Exception as e:
             st.error(f"Gemini LLM 초기화 실패: {e}")
             return None
+
     elif model_provider == "Claude":
         api_key = st.session_state.get("anthropic_api_key")
         if not api_key:
@@ -59,40 +59,86 @@ def get_llm(temperature: float = 0.7):
     
     return None
 
-def scrape_web_content(url: str) -> str:
-    """지정된 URL의 웹 콘텐츠를 스크래핑하여 텍스트를 반환합니다."""
-    
-    session = requests.Session()
-    session.headers.update({'User-Agent': 'Mozilla/5.0'})
 
+def _session():
+    s = requests.Session()
+    s.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    })
+    return s
+
+def _scrape_naver_blog(url: str):
+    s = _session()
     try:
-        response = session.get(url, timeout=15)
-        response.raise_for_status()
+        r = s.get(url, timeout=20)
+        r.raise_for_status()
+    except RequestException as e:
+        return "", f"URL 요청 중 오류 발생: {e}"
 
+    soup = BeautifulSoup(r.content, "html.parser")
+
+    frame = soup.find("iframe", {"id": "mainFrame"}) or soup.find("frame", {"id": "mainFrame"})
+    if not frame or not frame.get("src"):
+        return "", "콘텐츠를 추출할 수 없습니다."
+
+    inner_url = urljoin("https://blog.naver.com", frame.get("src"))
+    try:
+        r2 = s.get(inner_url, timeout=20)
+        r2.raise_for_status()
+    except RequestException as e:
+        return "", f"URL 요청 중 오류 발생: {e}"
+
+    inner = BeautifulSoup(r2.content, "html.parser")
+
+    title_candidates = [
+        ".se-title-text", ".se_title_text", "h3.se_textarea", "#title_1", "h3#postTitleText"
+    ]
+    title = ""
+    for sel in title_candidates:
+        el = inner.select_one(sel)
+        if el and el.get_text(strip=True):
+            title = el.get_text(strip=True)
+            break
+    if not title:
+        title = inner.title.get_text(strip=True) if inner.title else ""
+
+    container = inner.select_one(".se-main-container") or inner.select_one("#postViewArea")
+    if container:
+        for tag in container(["script","style","nav","footer","aside","form"]):
+            tag.decompose()
+        text = container.get_text(separator="\n", strip=True)
+        return title, text if text else "콘텐츠를 추출할 수 없습니다."
+
+    extracted = trafilatura.extract(r2.text)
+    if extracted:
+        return title, extracted
+
+    return title, "콘텐츠를 추출할 수 없습니다."
+
+def scrape_web_content(url: str):
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    if "blog.naver.com" in host or "m.blog.naver.com" in host:
+        return _scrape_naver_blog(url)
+
+    s = _session()
+    try:
+        r = s.get(url, timeout=20)
+        r.raise_for_status()
     except SSLError:
-        print(f"⚠️ SSL 검증 실패. URL({url})에 대해 검증을 비활성화하여 재시도합니다.")
-        response = session.get(url, verify=False, timeout=15)
-        response.raise_for_status()
+        r = s.get(url, timeout=20, verify=False)
+        r.raise_for_status()
+    except RequestException as e:
+        return "", f"URL 요청 중 오류 발생: {e}"
 
-    except requests.RequestException as e:
-        return f"URL 요청 중 오류 발생: {e}"
-    
-    except Exception as e:
-        return f"콘텐츠 처리 중 오류 발생: {e}"
-
+    title = ""
     try:
-        soup = BeautifulSoup(response.content, 'html.parser')
-        main_content = soup.find('main') or soup.find('article') or soup.body
-        
-        if main_content:
-            for tag in main_content(['nav', 'footer', 'script', 'style', 'aside', 'form']):
-                tag.decompose()
-            text = main_content.get_text(separator='\n', strip=True)
-            
-            if not text:
-                return "스크랩이 금지된 글이거나 텍스트 콘텐츠가 없습니다."
-            return text
-            
-        return "콘텐츠를 추출할 수 없습니다."
-    except Exception as e:
-        return f"콘텐츠 스크래핑 중 오류 발생: {e}"
+        soup = BeautifulSoup(r.content, "html.parser")
+        title = soup.title.get_text(strip=True) if soup.title else ""
+    except Exception:
+        pass
+
+    extracted = trafilatura.extract(r.text)
+    if extracted:
+        return title, extracted
+    return title, "콘텐츠를 추출할 수 없습니다."
