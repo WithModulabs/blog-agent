@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 from typing import List, TypedDict
 
@@ -22,6 +24,7 @@ class AgentState(TypedDict):
     naver_seo_subtitles: List[str]
     image_prompt: str
     image_url: str
+    blog_index: int
     subtitle_image_prompts: List[str]
     subtitle_image_urls: List[str]
     image_keywords: List[str]
@@ -172,6 +175,107 @@ def writer_node(state: AgentState):
     st.success("✅ 작성가 에이전트: 포스트 초안 작성 완료!")
     return {"draft_post": draft_post, "final_title": main_title, "final_subheadings": subheadings, "naver_seo_subtitles": naver_seo_subtitles}
 
+def blog_indexer_node(state: AgentState):
+    """블로그 지수를 계산하는 에이전트"""
+    st.write("▶️ 블로그 지수 에이전트")
+    st.success("✅ 블로그 지수 계산 중...")
+
+    draft_post = state["draft_post"]
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """당신은 블로그 콘텐츠 전문가입니다. 주어진 블로그 게시물을 분석하여 블로그 지수(Blog Index)를 계산해주세요.
+
+다음 10개 항목을 각각 0-10점으로 평가하여 총 100점 만점으로 채점하고, 각 항목별 평가 근거와 개선점을 제시해주세요.
+
+## 평가 기준
+
+### 1. 검색 최적화 제목 작성 
+- 핵심 키워드가 앞부분에 위치하는가? 
+- 숫자, 시간, 지역명을 활용했는가? 
+- 클릭을 유도하는 감정 단어가 포함되어 있는가? 
+
+### 2. 첫 문단에서 핵심 요약 
+- 3줄 이내에 글 전체를 이해할 수 있도록 정리되었는가? 
+- 질문형으로 시작하여 호기심을 자극하는가? 
+
+### 3. 독자 공감 포인트 확보 
+- 실제 사례, 경험담, 에피소드가 포함되어 있는가? 
+- "저도 처음엔 몰랐는데…" 같은 톤으로 신뢰감을 형성하는가? 
+
+### 4. 본문 구조화 
+- 소제목에 키워드가 포함되어 있는가? 
+- 목록/번호를 활용하여 가독성을 강화했는가? 
+- 긴 문장을 2~3줄로 끊어 썼는가? 
+
+### 5. 꾸준한 구독자 유입을 위한 시리즈화 
+- 단발성이 아닌 연재 시리즈로 구성되었는가? 
+- 예: "초보자를 위한 ○○ 1편", "실전 응용 2편"
+
+### 6. 내부 링크 & 외부 링크 전략 
+- 블로그 내 다른 글로 자연스럽게 연결되어 있는가? 
+- 신뢰할 수 있는 외부 출처 1~2개 인용
+
+### 7. 이미지 활용법 
+- 글당 최소 3장 이상의 이미지를 사용했는가? 
+- 핵심 키워드를 포함한 그림 파일명을 작성했는가? 
+- ALT 텍스트에 설명을 추가했는가? 
+
+### 8. CTA(Call To Action) 삽입 
+- 공감/구독/이웃추가를 유도하는 문구가 있는가? 
+- 댓글을 유도하는 질문이 포함되어 있는가? 
+
+### 9. 메타데이터와 태그 최적화 
+- 글의 카테고리, 해시태그가 키워드와 일치하는가? 
+- 불필요한 태그 남발은 피하고 핵심 키워드 3~5개만 집중하여 태그를 설정했는가?
+
+### 10. 콘텐츠 차별화 요소 추가 
+- 직접 촬영한 사진, 인포그래픽, 표, 차트를 활용했는가? 
+- 단순 요약형이 아닌 경험+인사이트를 담아 독창성을 강화했는가? 
+
+## 출력 형식
+반드시 다음과 같은 JSON 형식으로 출력해주세요:
+
+```json
+{{"blog_index": {{"total_score": 0}}}}
+```
+
+위의 평가 기준에 따라 주어진 블로그 게시물을 분석하고, 반드시 위의 JSON 형식으로 블로그 지수를 계산해주세요."""),
+        ("human", "다음 블로그 게시물의 블로그 지수를 분석해주세요:\n\n{draft_post}")
+    ])
+
+    llm = get_llm()
+    if llm is None:
+        return {"blog_index": 0}
+
+    try:
+        chain = prompt | llm
+        response = chain.invoke({"draft_post": draft_post})
+
+        # JSON 응답 파싱
+        content = response.content
+
+        # JSON 부분만 추출
+        if "```json" in content:
+            json_start = content.find("```json") + 7
+            json_end = content.find("```", json_start)
+            json_content = content[json_start:json_end].strip()
+        elif "{" in content and "}" in content:
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            json_content = content[json_start:json_end]
+        else:
+            json_content = content
+
+        blog_index_full = json.loads(json_content)
+        blog_index = blog_index_full.get("blog_index", {}).get("total_score", 0)
+
+        st.success(f"✅ 블로그 지수 계산 완료. {blog_index}점")
+        return {"draft_post": f"{draft_post}\n\n**블로그 지수**:{blog_index}", "blog_index": blog_index}
+
+    except Exception as e:
+        st.error(f"❌ 블로그 지수 계산에 실패했습니다: {e}")
+        return {"blog_index": 0}
+
 def art_director_node(state: AgentState):
     st.write("▶️ 아트 디렉터 에이전트: 이미지 생성 중...")
     title = state['final_title']
@@ -263,7 +367,8 @@ def build_graph():
     workflow.add_node("seo_specialist", seo_specialist_node)
     workflow.add_node("writer", writer_node)
     workflow.add_node("art_director", art_director_node)
-    
+    workflow.add_node("blog_indexer", blog_indexer_node)
+
     workflow.set_entry_point("researcher")
     workflow.add_conditional_edges(
         "researcher",
@@ -271,7 +376,8 @@ def build_graph():
         {"continue_to_seo": "seo_specialist", "end_process": END}
     )
     workflow.add_edge("seo_specialist", "writer")
-    workflow.add_edge("writer", "art_director")
+    workflow.add_edge("writer", "blog_indexer")
+    workflow.add_edge("blog_indexer", "art_director")
     workflow.add_edge("art_director", END)
     
     return workflow.compile()
