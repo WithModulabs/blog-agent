@@ -84,9 +84,6 @@ def check_required_api_keys():
     if image_model_provider == "DALL·E 3" and not st.session_state.get("openai_api_key"):
         if "OpenAI API Key" not in missing_keys:
             missing_keys.append("OpenAI API Key")
-    elif image_model_provider == "Gemini 2.5 Flash Image" and not st.session_state.get("gemini_api_key"):
-        if "Google API Key" not in missing_keys:
-            missing_keys.append("Google API Key")
     
     # Tavily API 키는 항상 필요
     if not st.session_state.get("tavily_api_key"):
