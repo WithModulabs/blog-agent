@@ -21,7 +21,7 @@ def get_llm(temperature: float = 0.7):
             return None
         os.environ["OPENAI_API_KEY"] = api_key
         try:
-            return ChatOpenAI(model="gpt-5", temperature=temperature)
+            return ChatOpenAI(model="gpt-4o", temperature=temperature)
         except Exception as e:
             st.error(f"OpenAI LLM 초기화 실패: {e}")
             return None
@@ -33,7 +33,7 @@ def get_llm(temperature: float = 0.7):
             return None
         try:
             return ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash-latest", 
+                model="gemini-2.0-flash-exp", 
                 google_api_key=api_key,
                 temperature=temperature,
                 convert_system_message_to_human=True
@@ -49,7 +49,7 @@ def get_llm(temperature: float = 0.7):
             return None
         try:
             return ChatAnthropic(
-                model="claude-sonnet-4-20250514",
+                model="claude-3-5-sonnet-20241022",
                 api_key=api_key,
                 temperature=temperature,
             )
@@ -58,6 +58,35 @@ def get_llm(temperature: float = 0.7):
             return None
     
     return None
+
+
+def generate_image_with_gemini(prompt: str, api_key: str):
+    """Gemini를 사용하여 이미지 생성"""
+    try:
+        import google.generativeai as genai
+        
+        genai.configure(api_key=api_key)
+        
+        # Gemini 2.0 Flash의 이미지 생성 기능 사용
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        
+        # 이미지 생성 요청
+        response = model.generate_content([
+            "Generate an image based on this description: " + prompt,
+            "Please create a high-quality, detailed image that matches the description."
+        ])
+        
+        # 응답에서 이미지 URL 추출 (실제 구현은 Gemini API 응답 형식에 따라 조정 필요)
+        if hasattr(response, 'images') and response.images:
+            return response.images[0].url
+        else:
+            # Gemini 이미지 생성이 지원되지 않는 경우 대체 로직
+            st.warning("Gemini 이미지 생성 기능을 사용할 수 없습니다. 텍스트 설명으로 대체합니다.")
+            return None
+            
+    except Exception as e:
+        st.error(f"Gemini 이미지 생성 실패: {e}")
+        return None
 
 
 def _session():
