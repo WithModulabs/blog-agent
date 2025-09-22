@@ -14,31 +14,76 @@ load_dotenv()
 
 def main():
     st.set_page_config(page_title="🤖 네이버 블로그 포스팅 자동 생성기", layout="wide", initial_sidebar_state="expanded")
-    
+
+    # 세션 상태 초기화 - .env 파일에서 자동 로드
+    if "keys_initialized" not in st.session_state:
+        st.session_state.keys_initialized = True
+        # .env 파일에서 키 자동 로드
+        if openai_key := os.getenv("OPENAI_API_KEY"):
+            st.session_state.openai_api_key = openai_key
+        if gemini_key := os.getenv("GEMINI_API_KEY"):
+            st.session_state.gemini_api_key = gemini_key
+        if anthropic_key := os.getenv("ANTHROPIC_API_KEY"):
+            st.session_state.anthropic_api_key = anthropic_key
+        if tavily_key := os.getenv("TAVILY_API_KEY"):
+            st.session_state.tavily_api_key = tavily_key
+
     # --- 사이드바 UI ---
     with st.sidebar:
         st.header("⚙️ API 및 모델 설정")
-        
+
         # 모델 선택
         model_provider = st.selectbox(
             "사용할 LLM 모델을 선택하세요",
             ("OpenAI", "Gemini", "Claude"),
             key="model_provider"
         )
-        
+
+        # 현재 저장된 키 상태 표시
+        saved_keys_status = []
+        if st.session_state.get("openai_api_key"):
+            saved_keys_status.append("✅ OpenAI")
+        if st.session_state.get("gemini_api_key"):
+            saved_keys_status.append("✅ Gemini")
+        if st.session_state.get("anthropic_api_key"):
+            saved_keys_status.append("✅ Claude")
+        if st.session_state.get("tavily_api_key"):
+            saved_keys_status.append("✅ Tavily")
+
+        if saved_keys_status:
+            st.info(f"저장된 키: {', '.join(saved_keys_status)}")
+        else:
+            st.warning("⚠️ 저장된 API 키가 없습니다. 아래에서 키를 입력하고 저장해주세요.")
+
         # API 키 입력
-        openai_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", os.getenv("OPENAI_API_KEY") or ""))
-        gemini_key = st.text_input("Google API Key", type="password", value=st.session_state.get("gemini_api_key", os.getenv("GEMINI_API_KEY") or ""))
-        anthropic_key = st.text_input("Anthropic API Key", type="password", value=st.session_state.get("anthropic_api_key", os.getenv("ANTHROPIC_API_KEY") or ""))
-        tavily_key = st.text_input("Tavily API Key", type="password", value=st.session_state.get("tavily_api_key", os.getenv("TAVILY_API_KEY") or ""))
-        
-        if st.button("💾 API Keys 저장"):
+        openai_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.get("openai_api_key", ""))
+        gemini_key = st.text_input("Google API Key", type="password", value=st.session_state.get("gemini_api_key", ""))
+        anthropic_key = st.text_input("Anthropic API Key", type="password", value=st.session_state.get("anthropic_api_key", ""))
+        tavily_key = st.text_input("Tavily API Key", type="password", value=st.session_state.get("tavily_api_key", ""))
+
+        # 키가 변경되었는지 확인
+        keys_changed = (
+            openai_key != st.session_state.get("openai_api_key", "") or
+            gemini_key != st.session_state.get("gemini_api_key", "") or
+            anthropic_key != st.session_state.get("anthropic_api_key", "") or
+            tavily_key != st.session_state.get("tavily_api_key", "")
+        )
+
+        # 키가 변경되었거나 저장된 키가 없는 경우에만 저장 버튼 강조
+        if keys_changed or not saved_keys_status:
+            button_type = "primary"
+            button_help = "변경사항을 저장하려면 클릭하세요"
+        else:
+            button_type = "secondary"
+            button_help = "모든 키가 이미 저장되어 있습니다"
+
+        if st.button("💾 API Keys 저장", type=button_type, help=button_help):
             # .env 파일 경로 찾기 (없으면 생성)
             dotenv_path = find_dotenv() or ".env"
 
             # 키 저장 로직
             keys_to_save = {
-                "OPENAI_API_KEY": openai_key, 
+                "OPENAI_API_KEY": openai_key,
                 "GEMINI_API_KEY": gemini_key,
                 "ANTHROPIC_API_KEY": anthropic_key,
                 "TAVILY_API_KEY": tavily_key
@@ -49,7 +94,7 @@ def main():
                     st.session_state[key_name.lower()] = key_value
                     set_key(dotenv_path, key_name, key_value)
                     saved_count += 1
-            
+
             if saved_count > 0:
                 st.success(f"✅ {saved_count}개의 API Key가 저장되었습니다!")
                 # 저장 후 UI 컴포넌트에 즉시 반영되도록 스크립트 재실행
