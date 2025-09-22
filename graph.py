@@ -349,11 +349,6 @@ def art_director_node(state: AgentState):
             client = OpenAI(api_key=st.session_state.get("openai_api_key"))
             main_res = client.images.generate(model="dall-e-3", prompt=main_prompt, size="1024x1024", quality="standard", n=1)
             main_url = main_res.data[0].url
-        elif image_model_provider == "Gemini 2.5 Flash Image":
-            main_url = generate_image_with_gemini(main_prompt, st.session_state.get("gemini_api_key"))
-            if not main_url:
-                st.warning("Gemini 이미지 생성에 실패했습니다. 텍스트 설명으로 대체합니다.")
-                main_url = ""
 
         st.write("  🎨 부제목 기반 이미지 3개 생성 중...")
         sub_prompts, sub_urls = [], []
@@ -369,10 +364,6 @@ def art_director_node(state: AgentState):
             if image_model_provider == "DALL·E 3":
                 sub_res = client.images.generate(model="dall-e-3", prompt=sub_prompt, size="1024x1024", quality="standard", n=1)
                 sub_url = sub_res.data[0].url
-            elif image_model_provider == "Gemini 2.5 Flash Image":
-                sub_url = generate_image_with_gemini(sub_prompt, st.session_state.get("gemini_api_key"))
-                if not sub_url:
-                    sub_url = ""
             
             sub_urls.append(sub_url)
 

@@ -33,7 +33,7 @@ def get_llm(temperature: float = 0.7):
             return None
         try:
             return ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash-exp", 
+                model="gemini-2.5-flash", 
                 google_api_key=api_key,
                 temperature=temperature,
                 convert_system_message_to_human=True
@@ -49,7 +49,7 @@ def get_llm(temperature: float = 0.7):
             return None
         try:
             return ChatAnthropic(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-4-sonnet",
                 api_key=api_key,
                 temperature=temperature,
             )
