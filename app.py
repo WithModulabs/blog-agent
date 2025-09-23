@@ -84,6 +84,7 @@ def check_required_api_keys():
     if image_model_provider == "DALL·E 3" and not st.session_state.get("openai_api_key"):
         if "OpenAI API Key" not in missing_keys:
             missing_keys.append("OpenAI API Key")
+    # Pollinations.ai는 별도 API 키 불필요
     
     # Tavily API 키는 항상 필요
     if not st.session_state.get("tavily_api_key"):
@@ -120,7 +121,7 @@ def main():
 
         image_model_provider = st.selectbox(
             "이미지 생성에 사용할 모델을 선택하세요",
-            ("DALL·E 3", "Gemini 2.5 Flash Image"),
+            ("DALL·E 3", "Pollinations.ai"),
             key="image_model_provider"
         )
 
@@ -280,15 +281,19 @@ def main():
         all_image_prompts = []
         image_keywords = final_state.get('image_keywords', ['키워드1', '키워드2'])
         keywords_str = '_'.join(image_keywords)
-        
+
         if final_state.get("image_url"):
             all_image_urls.append(final_state["image_url"])
             all_image_prompts.append(final_state.get("image_prompt", ""))
-        
+
         subtitle_urls = final_state.get("subtitle_image_urls", [])
         subtitle_prompts = final_state.get("subtitle_image_prompts", [])
-        all_image_urls.extend(subtitle_urls)
-        all_image_prompts.extend(subtitle_prompts)
+
+        # 빈 문자열이 아닌 유효한 URL만 추가
+        for url, prompt in zip(subtitle_urls, subtitle_prompts):
+            if url:  # URL이 빈 문자열이 아닌 경우에만 추가
+                all_image_urls.append(url)
+                all_image_prompts.append(prompt)
         
         if all_image_urls:
             # 이미지 그리드로 표시
@@ -312,6 +317,8 @@ def main():
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                         for i, url in enumerate(all_image_urls, 1):
+                            if not url:  # 빈 URL은 건너뜀
+                                continue
                             try:
                                 response = requests.get(url)
                                 if response.status_code == 200:

@@ -61,31 +61,48 @@ def get_llm(temperature: float = 0.7):
 
 
 def generate_image_with_gemini(prompt: str, api_key: str):
-    """Gemini를 사용하여 이미지 생성"""
+    """Pollinations.ai를 사용하여 이미지 생성
+
+    무료 AI 이미지 생성 서비스인 Pollinations.ai를 사용합니다.
+    API 키가 필요 없으며, URL을 통해 직접 이미지를 생성합니다.
+    """
     try:
-        import google.generativeai as genai
-        
-        genai.configure(api_key=api_key)
-        
-        # Gemini 2.0 Flash의 이미지 생성 기능 사용
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        
-        # 이미지 생성 요청
-        response = model.generate_content([
-            "Generate an image based on this description: " + prompt,
-            "Please create a high-quality, detailed image that matches the description."
-        ])
-        
-        # 응답에서 이미지 URL 추출 (실제 구현은 Gemini API 응답 형식에 따라 조정 필요)
-        if hasattr(response, 'images') and response.images:
-            return response.images[0].url
-        else:
-            # Gemini 이미지 생성이 지원되지 않는 경우 대체 로직
-            st.warning("Gemini 이미지 생성 기능을 사용할 수 없습니다. 텍스트 설명으로 대체합니다.")
-            return None
-            
+        import urllib.parse
+        import time
+
+        # Pollinations.ai API 사용 (무료, API 키 불필요)
+        # 프롬프트를 URL 인코딩
+        encoded_prompt = urllib.parse.quote(prompt)
+
+        # Pollinations.ai 이미지 생성 URL
+        # seed를 추가하여 매번 다른 이미지 생성
+        seed = int(time.time())
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&width=1024&height=1024&nologo=true"
+
+        # Pollinations.ai는 첫 요청 시 이미지를 생성하므로 시간이 걸림
+        # HEAD 요청 대신 직접 URL을 반환 (브라우저가 이미지를 가져올 때 생성됨)
+        st.info("🎨 Pollinations.ai를 통해 이미지를 생성 중... (첫 로딩 시 10-20초 소요)")
+
+        # 이미지 생성을 트리거하기 위해 GET 요청을 보내되,
+        # 타임아웃이 발생해도 URL은 유효하므로 반환
+        try:
+            # 이미지 생성 트리거 (최대 40초 대기)
+            response = requests.get(image_url, timeout=40, stream=True)
+            if response.status_code == 200:
+                st.success("✅ 이미지 생성 완료!")
+                return image_url
+        except requests.Timeout:
+            # 타임아웃이 발생해도 URL은 유효함
+            st.warning("⏳ 이미지 생성 중... URL은 유효하며 잠시 후 표시됩니다.")
+            return image_url
+        except Exception:
+            # 다른 오류가 발생해도 URL 자체는 유효할 수 있음
+            return image_url
+
+        return image_url
+
     except Exception as e:
-        st.error(f"Gemini 이미지 생성 실패: {e}")
+        st.error(f"이미지 URL 생성 실패: {e}")
         return None
 
 

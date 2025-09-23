@@ -322,9 +322,7 @@ def art_director_node(state: AgentState):
     if image_model_provider == "DALL·E 3" and not st.session_state.get("openai_api_key"):
         st.warning("⚠️ DALL·E 3 이미지 생성을 위해서는 OpenAI API Key가 필요합니다.")
         return {"image_prompt": "", "image_url": "", "subtitle_image_prompts": [], "subtitle_image_urls": [], "image_keywords": []}
-    elif image_model_provider == "Gemini 2.5 Flash Image" and not st.session_state.get("gemini_api_key"):
-        st.warning("⚠️ Gemini 이미지 생성을 위해서는 Google API Key가 필요합니다.")
-        return {"image_prompt": "", "image_url": "", "subtitle_image_prompts": [], "subtitle_image_urls": [], "image_keywords": []}
+    # Pollinations.ai는 API 키가 필요 없음
 
     prompt_llm = get_llm()
     if prompt_llm is None:
@@ -349,6 +347,9 @@ def art_director_node(state: AgentState):
             client = OpenAI(api_key=st.session_state.get("openai_api_key"))
             main_res = client.images.generate(model="dall-e-3", prompt=main_prompt, size="1024x1024", quality="standard", n=1)
             main_url = main_res.data[0].url
+        elif image_model_provider == "Pollinations.ai":
+            # Pollinations.ai 사용
+            main_url = generate_image_with_gemini(main_prompt, "")
 
         st.write("  🎨 부제목 기반 이미지 3개 생성 중...")
         sub_prompts, sub_urls = [], []
@@ -364,7 +365,10 @@ def art_director_node(state: AgentState):
             if image_model_provider == "DALL·E 3":
                 sub_res = client.images.generate(model="dall-e-3", prompt=sub_prompt, size="1024x1024", quality="standard", n=1)
                 sub_url = sub_res.data[0].url
-            
+            elif image_model_provider == "Pollinations.ai":
+                # Pollinations.ai 사용
+                sub_url = generate_image_with_gemini(sub_prompt, "")
+
             sub_urls.append(sub_url)
 
         generated_count = sum(1 for url in [main_url] + sub_urls if url)
