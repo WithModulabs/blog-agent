@@ -32,6 +32,8 @@ class AgentState(TypedDict):
     rewrite_reason: str
     rewrite_count: int  # 재작성 횟수 추가
     messages: List[BaseMessage]
+    user_feedback: str  # 사용자 피드백/수정 요청
+    chat_history: List[dict]  # 채팅 히스토리
 
 
 def researcher_node(state: AgentState):
@@ -390,6 +392,63 @@ def art_director_node(state: AgentState):
             "subtitle_image_urls": [],
             "image_keywords": image_keywords
         }
+
+
+def revise_with_feedback(current_post: str, user_feedback: str, title: str, seo_analysis: str) -> str:
+    """사용자 피드백을 바탕으로 블로그 포스트를 수정하는 함수
+
+    Args:
+        current_post: 현재 블로그 포스트 내용
+        user_feedback: 사용자의 수정 요청/피드백
+        title: 블로그 제목
+        seo_analysis: SEO 분석 내용
+
+    Returns:
+        수정된 블로그 포스트
+    """
+    revision_prompt = ChatPromptTemplate.from_messages([
+        ("system",
+         """당신은 전문 블로그 작가입니다. 사용자가 작성된 블로그 포스트에 대해 수정 요청을 했습니다.
+
+         사용자의 피드백을 정확히 반영하여 블로그 포스트를 수정해주세요. 다음 사항을 유지하세요:
+         - 전체적인 블로그 구조와 스타일 유지
+         - 이모지와 친근한 어조 유지
+         - 마크다운 형식 유지
+         - SEO 최적화 유지
+
+         사용자가 요청한 부분만 수정하고, 나머지는 가능한 한 원본을 유지하세요.
+         수정된 전체 블로그 포스트를 출력해주세요."""),
+        ("human",
+         """**현재 블로그 제목:** {title}
+
+         **SEO 분석:**
+         {seo_analysis}
+
+         **현재 블로그 포스트:**
+         {current_post}
+
+         **사용자 수정 요청:**
+         {user_feedback}
+
+         위 수정 요청을 반영하여 블로그 포스트를 수정해주세요.""")
+    ])
+
+    llm = get_llm()
+    if llm is None:
+        return current_post  # LLM 오류 시 원본 반환
+
+    chain = revision_prompt | llm
+    try:
+        revised_post = chain.invoke({
+            "title": title,
+            "seo_analysis": seo_analysis,
+            "current_post": current_post,
+            "user_feedback": user_feedback
+        }).content
+        return revised_post
+    except Exception as e:
+        st.error(f"수정 중 오류 발생: {e}")
+        return current_post
 
 
 def should_continue_from_researcher(state: AgentState):
