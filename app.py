@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv, set_key, find_dotenv
-from graph import build_graph
+from graph import build_graph, revise_with_feedback
 import time
 
 # --- 환경 설정 ---
@@ -376,6 +376,52 @@ def main():
         with st.expander("🤖 에이전트 작업 상세 내용 보기"):
             st.write("**SEO 전문가 분석:**")
             st.text(final_state.get('seo_analysis', '분석 내용 없음'))
+
+        # --- 채팅 인터페이스 ---
+        st.divider()
+        st.header("💬 작성가 에이전트와 대화하기")
+        st.markdown("블로그 포스트를 더 개선하고 싶으신가요? 작성가 에이전트에게 수정 요청을 해보세요!")
+        st.markdown("**예시:** '서론을 더 흥미롭게 만들어줘', '2번 섹션에 예시를 더 추가해줘', '전체적으로 더 간결하게 만들어줘'")
+
+        # 채팅 히스토리 초기화
+        if 'chat_history' not in st.session_state:
+            st.session_state.chat_history = []
+
+        # 채팅 히스토리 표시
+        for message in st.session_state.chat_history:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        # 채팅 입력
+        if user_input := st.chat_input("수정 요청을 입력하세요..."):
+            # 사용자 메시지 추가
+            st.session_state.chat_history.append({"role": "user", "content": user_input})
+
+            # 사용자 메시지 표시
+            with st.chat_message("user"):
+                st.markdown(user_input)
+
+            # 에이전트 응답 생성
+            with st.chat_message("assistant"):
+                with st.spinner("작성가 에이전트가 블로그 포스트를 수정하고 있습니다..."):
+                    revised_post = revise_with_feedback(
+                        current_post=final_state.get('draft_post', ''),
+                        user_feedback=user_input,
+                        title=final_state.get('final_title', ''),
+                        seo_analysis=final_state.get('seo_analysis', '')
+                    )
+
+                    # 수정된 포스트로 업데이트
+                    st.session_state.final_state['draft_post'] = revised_post
+
+                    response_message = "✅ 블로그 포스트가 수정되었습니다! 위의 '완성된 블로그 포스트' 섹션이 업데이트되었습니다."
+                    st.markdown(response_message)
+
+                    # 어시스턴트 응답 추가
+                    st.session_state.chat_history.append({"role": "assistant", "content": response_message})
+
+                    # 페이지 새로고침하여 업데이트된 포스트 표시
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
