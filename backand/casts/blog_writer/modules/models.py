@@ -22,9 +22,9 @@ def _get_available_provider(requested_provider: LLMProvider) -> LLMProvider:
 
     Priority: Requested -> OpenAI -> Google -> Anthropic
     """
-    openai_key = os.getenv("OPENAI_API_KEY")
-    google_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+    google_key = (os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or "").strip()
+    anthropic_key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
 
     # Check if requested provider is available
     if requested_provider == LLMProvider.OPENAI and openai_key:
@@ -44,7 +44,7 @@ def _get_available_provider(requested_provider: LLMProvider) -> LLMProvider:
 
     # No API keys found, raise error instead of returning requested_provider
     raise ValueError(
-        "사용 가능한 LLM API 키(OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY)가 설정되어 있지 않습니다. .env 파일을 확인해주세요."
+        "사용 가능한 LLM API 키(OPENAI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY)가 설정되어 있지 않습니다. .env 파일을 확인해주세요."
     )
 
 
