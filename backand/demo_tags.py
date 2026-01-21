@@ -13,7 +13,7 @@ from casts.blog_writer.graph import blog_writer_graph
 
 
 async def run_demo():
-    print("🚀 Starting Blog Writer Demo Run (MOCKED)...")
+    print("🚀 블로그 글 작성기 데모 실행 시작 (MOCKED)...")
 
     # Initialize the graph
     app = blog_writer_graph.build()
@@ -40,22 +40,22 @@ async def run_demo():
         mock_fetch.return_value = "Sample content for testing"
 
         # Run until the interrupt (human_select_keywords)
-        print("⏳ Running graph until keyword selection...")
+        print("⏳ 키워드 선택 단계까지 그래프 실행 중...")
         async for event in app.astream(inputs, stream_mode="updates"):
             for node_name, output in event.items():
-                print(f"✅ Node '{node_name}' completed.")
+                print(f"✅ '{node_name}' 노드 완료.")
                 if node_name == "suggest_keywords":
                     keywords = output.get("suggested_keywords", [])
-                    print(f"\n📊 Suggested Keywords ({len(keywords)} total):")
+                    print(f"\n📊 추천된 키워드 (총 {len(keywords)}개):")
                     for i, kw in enumerate(keywords, 1):
                         print(f"  {i}. {kw}")
 
                     if len(keywords) >= 30:
-                        print("\n🎉 SUCCESS: Successfully generated 30 keywords!")
+                        print("\n🎉 성공: 30개의 키워드가 성공적으로 생성되었습니다!")
                     else:
-                        print(f"\n⚠️ WARNING: Only generated {len(keywords)} keywords.")
+                        print(f"\n⚠️ 경고: {len(keywords)}개의 키워드만 생성되었습니다.")
 
-    print("\n🏁 Demo completed successfully (stopped at interrupt).")
+    print("\n🏁 데모가 성공적으로 완료되었습니다 (인터럽트 지점에서 정지).")
 
 
 if __name__ == "__main__":

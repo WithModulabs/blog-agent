@@ -46,7 +46,7 @@ class TestBlogWriterGraph:
         graph = graph_builder.build()
 
         # Check interrupt configuration
-        assert hasattr(graph, "interrupt_before") or hasattr(graph, "_interrupt_before")
+        assert "human_select_keywords" in getattr(graph, "interrupt_before_nodes", [])
 
     def test_graph_singleton_builds(self):
         """Test that blog_writer_graph singleton builds."""
@@ -78,7 +78,9 @@ class TestBlogWriterGraphIntegration:
 
             async def mock_ainvoke(prompt):
                 mock_response = AsyncMock()
-                if "분석" in prompt or "analyze" in prompt.lower():
+                if "키워드" in prompt:
+                    mock_response.content = '{"keywords": ["k1", "k2", "k3"]}'
+                else:
                     mock_response.content = """{
                         "title": "Test",
                         "main_topic": "Testing",
@@ -86,8 +88,6 @@ class TestBlogWriterGraphIntegration:
                         "summary": "Summary",
                         "tone": "formal"
                     }"""
-                else:
-                    mock_response.content = '{"keywords": ["k1", "k2", "k3"]}'
                 return mock_response
 
             mock_llm.ainvoke = mock_ainvoke
@@ -102,11 +102,58 @@ class TestBlogWriterGraphIntegration:
             async for event in graph.astream(
                 {"url": "https://example.com", "user_keywords": None},
                 config=config,
+                stream_mode="updates"
             ):
                 result = event
 
             # Should have reached suggest_keywords before interrupt
             assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_graph_handles_30_keywords(self):
+        """Test that suggest_keywords node can handle up to 30 keywords."""
+        graph = blog_writer_graph.build()
+
+        with (
+            patch(
+                "casts.blog_writer.modules.nodes.fetch_content",
+                new_callable=AsyncMock,
+                return_value="Sample content",
+            ),
+            patch("casts.blog_writer.modules.nodes.get_llm") as mock_get_llm,
+        ):
+            mock_llm = AsyncMock()
+            
+            # Return 35 keywords to test slicing at 30
+            large_keywords = [f"k{i}" for i in range(1, 36)]
+            import json
+            
+            async def mock_ainvoke(prompt):
+                mock_response = AsyncMock()
+                if "키워드" in prompt:
+                    mock_response.content = json.dumps({"keywords": large_keywords})
+                else:
+                    mock_response.content = '{"title": "Test", "main_topic": "T"}'
+                return mock_response
+
+            mock_llm.ainvoke = mock_ainvoke
+            mock_get_llm.return_value = mock_llm
+
+            config = {"configurable": {"thread_id": "test-30-thread"}}
+            
+            suggested_keywords = []
+            async for event in graph.astream(
+                {"url": "https://example.com"},
+                config=config,
+                stream_mode="updates"
+            ):
+                if "suggest_keywords" in event:
+                    suggested_keywords = event["suggest_keywords"]["suggested_keywords"]
+                    break
+
+            assert len(suggested_keywords) == 30
+            assert suggested_keywords[0] == "k1"
+            assert suggested_keywords[29] == "k30"
 
 
 class TestGraphState:

@@ -91,6 +91,7 @@ dependencies = [
     { name = "langgraph" },
     { name = "markdown" },
     { name = "playwright" },
+    { name = "python-dotenv" },
 ]
 
 [package.dev-dependencies]
@@ -123,6 +124,7 @@ requires-dist = [
     { name = "langgraph", specifier = ">=1.0.0" },
     { name = "markdown", specifier = ">=3.10" },
     { name = "playwright", specifier = ">=1.57.0" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
 ]
 
 [package.metadata.requires-dev]

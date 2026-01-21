@@ -47,7 +47,7 @@ class FetchContent(AsyncBaseNode):
                 state["config"].get("scraper_type", "beautifulsoup")
             )
 
-        self.log(f"Fetching content from {url} using {scraper_type}")
+        self.log(f"다음 URL에서 컨텐츠를 가져오는 중: {url} (스크레이퍼: {scraper_type})")
 
         raw_content = await fetch_content(url, scraper_type)
 
@@ -74,7 +74,7 @@ class AnalyzeContent(AsyncBaseNode):
 
         prompt = ANALYZE_CONTENT_PROMPT.format(raw_content=raw_content)
 
-        self.log("Analyzing content...")
+        self.log("컨텐츠 분석 중...")
         response = await llm.ainvoke(prompt)
 
         try:
@@ -127,7 +127,7 @@ class SuggestKeywords(AsyncBaseNode):
             user_keywords_section=user_keywords_section,
         )
 
-        self.log("Suggesting keywords...")
+        self.log("키워드 추천 중...")
         response = await llm.ainvoke(prompt)
 
         try:
@@ -156,10 +156,12 @@ class HumanSelectKeywords(AsyncBaseNode):
         suggested = state.get("suggested_keywords", [])
 
         # In interrupt mode, user can provide selected_keywords
-        # If not provided, use all suggested keywords
-        selected = state.get("selected_keywords") or suggested
+        # If not provided (None), use all suggested keywords. Preserve empty list if explicitly provided.
+        selected = state.get("selected_keywords")
+        if selected is None:
+            selected = suggested
 
-        self.log(f"Selected keywords: {selected}")
+        self.log(f"선택된 키워드: {selected}")
 
         return {"selected_keywords": selected}
 
@@ -186,7 +188,7 @@ class WriteBlog(AsyncBaseNode):
             selected_keywords=", ".join(selected_keywords),
         )
 
-        self.log("Writing blog post...")
+        self.log("블로그 포스트 작성 중...")
         response = await llm.ainvoke(prompt)
 
         return {"blog_markdown": response.content}
@@ -211,7 +213,7 @@ class OptimizeSEO(AsyncBaseNode):
             selected_keywords=", ".join(selected_keywords),
         )
 
-        self.log("Optimizing SEO...")
+        self.log("SEO 최적화 중...")
         response = await llm.ainvoke(prompt)
 
         try:
@@ -255,16 +257,16 @@ class GenerateImages(AsyncBaseNode):
             key_points=", ".join(analyzed.get("key_points", [])),
         )
 
-        self.log("Generating image prompt...")
+        self.log("이미지 프롬프트 생성 중...")
         response = await llm.ainvoke(prompt)
         image_prompt = response.content.strip()
 
-        self.log(f"Generating image with {image_provider}...")
+        self.log(f"{image_provider}를 사용하여 이미지 생성 중...")
         try:
             image_url = await generate_image(image_prompt, image_provider)
             image_urls = [image_url] if image_url else []
         except Exception as e:
-            self.log(f"Image generation failed: {e}")
+            self.log(f"이미지 생성 실패: {e}")
             image_urls = []
 
         return {"image_urls": image_urls}

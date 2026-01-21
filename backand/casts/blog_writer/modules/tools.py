@@ -8,6 +8,8 @@ import os
 import httpx
 from bs4 import BeautifulSoup
 
+from typing import Optional
+
 from casts.blog_writer.modules.state import ImageProvider, ScraperType
 
 # =============================================================================
@@ -189,10 +191,11 @@ async def fetch_image_pexels(query: str) -> str:
         return ""
 
 
-def _get_available_image_provider(requested_provider: ImageProvider) -> ImageProvider:
+def _get_available_image_provider(requested_provider: ImageProvider) -> Optional[ImageProvider]:
     """Determine available image provider based on API keys.
 
     Priority: Requested -> DALL-E -> Unsplash -> Pexels -> Stability
+    Returns None if no API keys are found.
     """
     if requested_provider == ImageProvider.DALLE and os.getenv("OPENAI_API_KEY"):
         return ImageProvider.DALLE
@@ -215,7 +218,7 @@ def _get_available_image_provider(requested_provider: ImageProvider) -> ImagePro
     if os.getenv("STABILITY_API_KEY"):
         return ImageProvider.STABILITY
 
-    return requested_provider
+    return None
 
 
 async def generate_image(
@@ -232,6 +235,9 @@ async def generate_image(
         Image URL
     """
     active_provider = _get_available_image_provider(provider)
+
+    if active_provider is None:
+        raise ValueError("사용 가능한 이미지 제공자 API 키가 없습니다. 이미지 생성을 건너뜁니다.")
 
     if active_provider == ImageProvider.DALLE:
         return await generate_image_dalle(prompt)

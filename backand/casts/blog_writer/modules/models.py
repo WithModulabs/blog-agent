@@ -42,7 +42,10 @@ def _get_available_provider(requested_provider: LLMProvider) -> LLMProvider:
     if anthropic_key:
         return LLMProvider.ANTHROPIC
 
-    return requested_provider
+    # No API keys found, raise error instead of returning requested_provider
+    raise ValueError(
+        "사용 가능한 LLM API 키(OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY)가 설정되어 있지 않습니다. .env 파일을 확인해주세요."
+    )
 
 
 def get_llm(
@@ -89,9 +92,13 @@ def get_llm(
             os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY", "")
         ).strip()
 
-        # Explicitly set environment variable as some SDK versions require it
+        # Validate actual_key and avoid passing empty string
         if actual_key:
+            # Explicitly set environment variable as some SDK versions require it
             os.environ["GOOGLE_API_KEY"] = actual_key
+        else:
+            # If no key is found, raise a clear error to avoid passing an empty string to the SDK
+            raise ValueError("GOOGLE_API_KEY 또는 GEMINI_API_KEY가 비어있거나 설정되지 않았습니다.")
 
         return ChatGoogleGenerativeAI(
             model=model or "gemini-2.0-flash",
