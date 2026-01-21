@@ -3,7 +3,7 @@
 Implements 8 nodes as specified in CLAUDE.md:
 - FetchContent: URL에서 웹 콘텐츠 수집
 - AnalyzeContent: 핵심 내용 분석 및 요약
-- SuggestKeywords: 키워드 3개 제안
+- SuggestKeywords: 키워드 최대 30개 제안
 - HumanSelectKeywords: 사용자 키워드 선택 (interrupt)
 - WriteBlog: 블로그 마크다운 작성
 - OptimizeSEO: SEO 메타 정보 생성
@@ -99,7 +99,7 @@ class AnalyzeContent(AsyncBaseNode):
 
 
 class SuggestKeywords(AsyncBaseNode):
-    """키워드 3개 제안."""
+    """키워드 최대 30개 제안."""
 
     async def execute(self, state, config=None):
         """키워드 제안."""

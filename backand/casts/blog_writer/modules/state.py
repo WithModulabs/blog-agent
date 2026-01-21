@@ -75,7 +75,7 @@ class BlogResponse(BaseModel):
     """Output response model for Blog Writer API."""
 
     html_content: str  # 이미지 포함 HTML 블로그
-    suggested_keywords: list[str]  # 제안된 키워드 3개
+    suggested_keywords: list[str]  # 제안된 키워드 (최대 30개)
     selected_keywords: list[str]  # 선택된 키워드
     seo_meta: SEOMeta  # SEO 메타 정보
     image_urls: list[str]  # 생성된 이미지 URL들
@@ -113,7 +113,7 @@ class BlogState(TypedDict, total=False):
         config: Configuration settings
         raw_content: Scraped web content
         analyzed_content: Analyzed/summarized content
-        suggested_keywords: AI-suggested keywords (3)
+        suggested_keywords: AI-suggested keywords (up to 30)
         selected_keywords: User-selected keywords
         blog_markdown: Generated blog in markdown
         image_urls: Generated/fetched image URLs
