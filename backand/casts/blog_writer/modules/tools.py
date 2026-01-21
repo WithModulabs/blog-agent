@@ -187,11 +187,38 @@ async def fetch_image_pexels(query: str) -> str:
         return ""
 
 
+def _get_available_image_provider(requested_provider: ImageProvider) -> ImageProvider:
+    """Determine available image provider based on API keys.
+    
+    Priority: Requested -> DALL-E -> Unsplash -> Pexels -> Stability
+    """
+    if requested_provider == ImageProvider.DALLE and os.getenv("OPENAI_API_KEY"):
+        return ImageProvider.DALLE
+    if requested_provider == ImageProvider.UNSPLASH and os.getenv("UNSPLASH_ACCESS_KEY"):
+        return ImageProvider.UNSPLASH
+    if requested_provider == ImageProvider.PEXELS and os.getenv("PEXELS_API_KEY"):
+        return ImageProvider.PEXELS
+    if requested_provider == ImageProvider.STABILITY and os.getenv("STABILITY_API_KEY"):
+        return ImageProvider.STABILITY
+
+    # Fallback cascade
+    if os.getenv("OPENAI_API_KEY"):
+        return ImageProvider.DALLE
+    if os.getenv("UNSPLASH_ACCESS_KEY"):
+        return ImageProvider.UNSPLASH
+    if os.getenv("PEXELS_API_KEY"):
+        return ImageProvider.PEXELS
+    if os.getenv("STABILITY_API_KEY"):
+        return ImageProvider.STABILITY
+    
+    return requested_provider
+
+
 async def generate_image(
     prompt: str,
     provider: ImageProvider = ImageProvider.DALLE,
 ) -> str:
-    """Generate or fetch image using configured provider.
+    """Generate or fetch image using configured provider with fallback support.
     
     Args:
         prompt: Image description/query
@@ -200,13 +227,17 @@ async def generate_image(
     Returns:
         Image URL
     """
-    if provider == ImageProvider.DALLE:
+    active_provider = _get_available_image_provider(provider)
+    
+    if active_provider == ImageProvider.DALLE:
         return await generate_image_dalle(prompt)
-    elif provider == ImageProvider.STABILITY:
+    elif active_provider == ImageProvider.STABILITY:
         return await generate_image_stability(prompt)
-    elif provider == ImageProvider.UNSPLASH:
+    elif active_provider == ImageProvider.UNSPLASH:
         return await fetch_image_unsplash(prompt)
-    elif provider == ImageProvider.PEXELS:
+    elif active_provider == ImageProvider.PEXELS:
         return await fetch_image_pexels(prompt)
     else:
-        raise ValueError(f"Unsupported image provider: {provider}")
+        # If no keys found at all, skip image generation gracefully
+        # The node level handles this by catching exceptions
+        raise ValueError(f"No API keys available for any image provider. Tried falling back from {provider}.")

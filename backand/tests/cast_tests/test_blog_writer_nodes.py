@@ -3,6 +3,7 @@
 Tests each node in isolation with mocked dependencies.
 """
 
+import json
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -87,26 +88,45 @@ class TestSuggestKeywords:
     """Tests for SuggestKeywords node."""
 
     @pytest.mark.asyncio
-    async def test_suggest_keywords_returns_three(
+    async def test_suggest_keywords_up_to_thirty(
         self, sample_state, sample_analyzed_content, mock_llm_response
     ):
-        """Test that exactly 3 keywords are suggested."""
+        """Test that keywords are suggested up to 30."""
         node = SuggestKeywords()
         sample_state["analyzed_content"] = sample_analyzed_content
         
-        mock_response = mock_llm_response('{"keywords": ["keyword1", "keyword2", "keyword3"]}')
+        # Test Case 1: Exactly 30 keywords
+        keywords_30 = [f"keyword{i}" for i in range(1, 31)]
+        mock_response_30 = mock_llm_response(json.dumps({"keywords": keywords_30}))
         
-        with patch(
-            "casts.blog_writer.modules.nodes.get_llm"
-        ) as mock_get_llm:
+        with patch("casts.blog_writer.modules.nodes.get_llm") as mock_get_llm:
             mock_llm = AsyncMock()
-            mock_llm.ainvoke = AsyncMock(return_value=mock_response)
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response_30)
             mock_get_llm.return_value = mock_llm
-            
             result = await node.execute(sample_state)
+            assert len(result["suggested_keywords"]) == 30
+
+        # Test Case 2: Fewer than 30 keywords (e.g., 5)
+        keywords_5 = [f"keyword{i}" for i in range(1, 6)]
+        mock_response_5 = mock_llm_response(json.dumps({"keywords": keywords_5}))
         
-        assert "suggested_keywords" in result
-        assert len(result["suggested_keywords"]) == 3
+        with patch("casts.blog_writer.modules.nodes.get_llm") as mock_get_llm:
+            mock_llm = AsyncMock()
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response_5)
+            mock_get_llm.return_value = mock_llm
+            result = await node.execute(sample_state)
+            assert len(result["suggested_keywords"]) == 5
+
+        # Test Case 3: More than 30 keywords (capped at 30)
+        keywords_35 = [f"keyword{i}" for i in range(1, 36)]
+        mock_response_35 = mock_llm_response(json.dumps({"keywords": keywords_35}))
+        
+        with patch("casts.blog_writer.modules.nodes.get_llm") as mock_get_llm:
+            mock_llm = AsyncMock()
+            mock_llm.ainvoke = AsyncMock(return_value=mock_response_35)
+            mock_get_llm.return_value = mock_llm
+            result = await node.execute(sample_state)
+            assert len(result["suggested_keywords"]) == 30
 
 
 class TestHumanSelectKeywords:

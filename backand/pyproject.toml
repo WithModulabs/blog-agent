@@ -19,6 +19,7 @@ dependencies = [
 [dependency-groups]
 test = [
     "pytest",
+    "pytest-asyncio",
     "langgraph-cli[inmem]",
 ]
 lint = [

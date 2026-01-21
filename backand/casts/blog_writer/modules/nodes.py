@@ -138,10 +138,10 @@ class SuggestKeywords(AsyncBaseNode):
             if json_match:
                 content = json_match.group(1)
             data = json.loads(content)
-            suggested_keywords = data.get("keywords", [])[:3]
+            suggested_keywords = data.get("keywords", [])[:30]
         except json.JSONDecodeError:
             # Fallback: extract any quoted words
-            suggested_keywords = re.findall(r'"([^"]+)"', response.content)[:3]
+            suggested_keywords = re.findall(r'"([^"]+)"', response.content)[:30]
         
         return {"suggested_keywords": suggested_keywords}
 
