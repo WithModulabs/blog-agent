@@ -118,11 +118,11 @@ def parse_act_claude_md(content: str) -> dict:
 
     # Extract casts from table
     # Format: | CastName | purpose | [link](path) |
-    cast_table_pattern = r"\| ([A-Z][a-zA-Z0-9 ]+) \| .* \| \[.*?\]\((casts/[^/]+/CLAUDE\.md)\)"
+    cast_table_pattern = (
+        r"\| ([A-Z][a-zA-Z0-9 ]+) \| .* \| \[.*?\]\((casts/[^/]+/CLAUDE\.md)\)"
+    )
     matches = re.findall(cast_table_pattern, content)
-    data["casts_in_table"] = [
-        {"name": name, "path": path} for name, path in matches
-    ]
+    data["casts_in_table"] = [{"name": name, "path": path} for name, path in matches]
 
     return data
 
@@ -332,7 +332,9 @@ def validate_distributed_architecture(project_root: Path) -> ValidationReport:
                 if cast_claude.exists():
                     # Extract cast name from file
                     cast_content = cast_claude.read_text(encoding="utf-8")
-                    cast_name_match = re.search(r"# Cast: ([A-Z][a-zA-Z0-9 ]+)", cast_content)
+                    cast_name_match = re.search(
+                        r"# Cast: ([A-Z][a-zA-Z0-9 ]+)", cast_content
+                    )
                     if cast_name_match:
                         cast_name = cast_name_match.group(1).strip()
                         cast_files[cast_name] = cast_claude

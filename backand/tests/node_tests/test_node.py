@@ -4,7 +4,7 @@ Official document URL: https://docs.langchain.com/oss/python/langgraph/test"""
 
 from __future__ import annotations
 
-from casts.sam.modules.nodes import SampleNode, AsyncSampleNode
+from casts.sam.modules.nodes import AsyncSampleNode, SampleNode
 
 
 def test_base_node_calls_execute() -> None:
