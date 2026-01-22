@@ -107,7 +107,7 @@ def get_llm(
         )
 
     else:
-        raise ValueError(f"Unsupported or unavailable LLM provider: {active_provider}")
+        raise ValueError(f"지원되지 않거나 사용 불가능한 LLM 제공자: {active_provider}")
 
 
 @lru_cache(maxsize=10)
