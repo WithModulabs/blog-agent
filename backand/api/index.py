@@ -3,8 +3,10 @@
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add backand directory to path for imports
+# When deployed from project root, we need to add the backand directory
+backand_path = Path(__file__).parent.parent
+sys.path.insert(0, str(backand_path))
 
 from app.main import app
 
