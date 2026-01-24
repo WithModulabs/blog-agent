@@ -4,40 +4,41 @@ Includes web scraping and image generation/fetching tools.
 """
 
 import os
-from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
 
-from casts.blog_writer.modules.state import ImageProvider, ScraperType
+from typing import Optional
 
+from casts.blog_writer.modules.state import ImageProvider, ScraperType
 
 # =============================================================================
 # Web Scraping Tools
 # =============================================================================
 
+
 async def fetch_with_beautifulsoup(url: str) -> str:
     """Fetch web content using BeautifulSoup + httpx.
-    
+
     Args:
         url: URL to fetch
-        
+
     Returns:
         Extracted text content from the page
     """
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(url, follow_redirects=True)
         response.raise_for_status()
-        
+
     soup = BeautifulSoup(response.text, "html.parser")
-    
+
     # Remove script and style elements
     for element in soup(["script", "style", "nav", "footer", "header"]):
         element.decompose()
-    
+
     # Get text content
     text = soup.get_text(separator="\n", strip=True)
-    
+
     # Clean up whitespace
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return "\n".join(lines)
@@ -45,42 +46,44 @@ async def fetch_with_beautifulsoup(url: str) -> str:
 
 async def fetch_with_playwright(url: str) -> str:
     """Fetch web content using Playwright (for JS-rendered pages).
-    
+
     Args:
         url: URL to fetch
-        
+
     Returns:
         Extracted text content from the page
     """
     from playwright.async_api import async_playwright
-    
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        
+
         await page.goto(url, wait_until="networkidle")
-        
+
         # Get main content
         content = await page.content()
         await browser.close()
-        
+
     soup = BeautifulSoup(content, "html.parser")
-    
+
     for element in soup(["script", "style", "nav", "footer", "header"]):
         element.decompose()
-    
+
     text = soup.get_text(separator="\n", strip=True)
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return "\n".join(lines)
 
 
-async def fetch_content(url: str, scraper_type: ScraperType = ScraperType.BEAUTIFULSOUP) -> str:
+async def fetch_content(
+    url: str, scraper_type: ScraperType = ScraperType.BEAUTIFULSOUP
+) -> str:
     """Fetch web content using configured scraper.
-    
+
     Args:
         url: URL to fetch
         scraper_type: Which scraper to use
-        
+
     Returns:
         Extracted text content
     """
@@ -93,18 +96,19 @@ async def fetch_content(url: str, scraper_type: ScraperType = ScraperType.BEAUTI
 # Image Generation/Fetching Tools
 # =============================================================================
 
+
 async def generate_image_dalle(prompt: str, size: str = "1024x1024") -> str:
     """Generate image using OpenAI DALL-E.
-    
+
     Args:
         prompt: Image generation prompt
         size: Image size
-        
+
     Returns:
         Generated image URL
     """
     from openai import AsyncOpenAI
-    
+
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = await client.images.generate(
         model="dall-e-3",
@@ -117,10 +121,10 @@ async def generate_image_dalle(prompt: str, size: str = "1024x1024") -> str:
 
 async def generate_image_stability(prompt: str) -> str:
     """Generate image using Stability AI.
-    
+
     Args:
         prompt: Image generation prompt
-        
+
     Returns:
         Generated image URL or base64 data
     """
@@ -147,10 +151,10 @@ async def generate_image_stability(prompt: str) -> str:
 
 async def fetch_image_unsplash(query: str) -> str:
     """Fetch image from Unsplash.
-    
+
     Args:
         query: Search query
-        
+
     Returns:
         Image URL from Unsplash
     """
@@ -167,10 +171,10 @@ async def fetch_image_unsplash(query: str) -> str:
 
 async def fetch_image_pexels(query: str) -> str:
     """Fetch image from Pexels.
-    
+
     Args:
         query: Search query
-        
+
     Returns:
         Image URL from Pexels
     """
@@ -187,26 +191,65 @@ async def fetch_image_pexels(query: str) -> str:
         return ""
 
 
+def _get_available_image_provider(requested_provider: ImageProvider) -> Optional[ImageProvider]:
+    """Determine available image provider based on API keys.
+
+    Priority: Requested -> DALL-E -> Unsplash -> Pexels -> Stability
+    Returns None if no API keys are found.
+    """
+    if requested_provider == ImageProvider.DALLE and os.getenv("OPENAI_API_KEY"):
+        return ImageProvider.DALLE
+    if requested_provider == ImageProvider.UNSPLASH and os.getenv(
+        "UNSPLASH_ACCESS_KEY"
+    ):
+        return ImageProvider.UNSPLASH
+    if requested_provider == ImageProvider.PEXELS and os.getenv("PEXELS_API_KEY"):
+        return ImageProvider.PEXELS
+    if requested_provider == ImageProvider.STABILITY and os.getenv("STABILITY_API_KEY"):
+        return ImageProvider.STABILITY
+
+    # Fallback cascade
+    if os.getenv("OPENAI_API_KEY"):
+        return ImageProvider.DALLE
+    if os.getenv("UNSPLASH_ACCESS_KEY"):
+        return ImageProvider.UNSPLASH
+    if os.getenv("PEXELS_API_KEY"):
+        return ImageProvider.PEXELS
+    if os.getenv("STABILITY_API_KEY"):
+        return ImageProvider.STABILITY
+
+    return None
+
+
 async def generate_image(
     prompt: str,
     provider: ImageProvider = ImageProvider.DALLE,
 ) -> str:
-    """Generate or fetch image using configured provider.
-    
+    """Generate or fetch image using configured provider with fallback support.
+
     Args:
         prompt: Image description/query
         provider: Image provider to use
-        
+
     Returns:
         Image URL
     """
-    if provider == ImageProvider.DALLE:
+    active_provider = _get_available_image_provider(provider)
+
+    if active_provider is None:
+        raise ValueError("사용 가능한 이미지 제공자 API 키가 없습니다. 이미지 생성을 건너뜁니다.")
+
+    if active_provider == ImageProvider.DALLE:
         return await generate_image_dalle(prompt)
-    elif provider == ImageProvider.STABILITY:
+    elif active_provider == ImageProvider.STABILITY:
         return await generate_image_stability(prompt)
-    elif provider == ImageProvider.UNSPLASH:
+    elif active_provider == ImageProvider.UNSPLASH:
         return await fetch_image_unsplash(prompt)
-    elif provider == ImageProvider.PEXELS:
+    elif active_provider == ImageProvider.PEXELS:
         return await fetch_image_pexels(prompt)
     else:
-        raise ValueError(f"Unsupported image provider: {provider}")
+        # If no keys found at all, skip image generation gracefully
+        # The node level handles this by catching exceptions
+        raise ValueError(
+            f"No API keys available for any image provider. Tried falling back from {provider}."
+        )

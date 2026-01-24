@@ -1,8 +1,8 @@
 """Entry point for the Blog Writer graph.
 
 Assembles 8 nodes into a Sequential + Human-in-the-loop graph:
-START → FetchContent → AnalyzeContent → SuggestKeywords → 
-HumanSelectKeywords (interrupt) → WriteBlog → OptimizeSEO → 
+START → FetchContent → AnalyzeContent → SuggestKeywords →
+HumanSelectKeywords (interrupt) → WriteBlog → OptimizeSEO →
 GenerateImages → ConvertToHTML → END
 """
 
@@ -69,9 +69,7 @@ class BlogWriterGraph(BaseGraph):
         builder.add_edge("convert_to_html", END)
 
         # Compile with interrupt at keyword selection
-        graph = builder.compile(
-            interrupt_before=["human_select_keywords"]
-        )
+        graph = builder.compile(interrupt_before=["human_select_keywords"])
         graph.name = self.name
         return graph
 

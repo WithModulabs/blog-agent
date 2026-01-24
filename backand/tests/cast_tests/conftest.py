@@ -1,16 +1,19 @@
 """Fixtures for Blog Writer tests."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 
 @pytest.fixture
 def mock_llm_response():
     """Mock LLM response factory."""
+
     def _create_response(content: str):
         mock = MagicMock()
         mock.content = content
         return mock
+
     return _create_response
 
 

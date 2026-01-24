@@ -5,10 +5,11 @@ Blog Agent는 **LangGraph** 기반의 멀티에이전트 파이프라인으로, 
 
 - **주요 기능**
   - 🔍 **웹 검색 및 콘텐츠 스크래핑**: Tavily API를 활용한 실시간 자료 수집
-  - 📈 **SEO 분석 및 최적화**: 네이버 SEO 트렌드 기반 태그 및 키워드 추천
+  - 📈 **SEO 분석 및 최적화**: 네이버 SEO 트렌드 기반 태그 및 키워드 추천 (최대 30개)
   - ✍️ **블로그 초안 자동 작성**: 마크다운 형식의 고품질 콘텐츠 생성
   - 🎨 **DALL-E 이미지 생성**: 블로그 주제에 맞는 대표 이미지 자동 생성
   - 🤖 **모듈형 에이전트 구조**: 확장과 커스터마이징이 용이한 설계
+  - 🔄 **LLM 자동 폴백**: OpenAI, Gemini, Claude 중 사용 가능한 모델 자동 선택
 
 ## 폴더 구조
 
@@ -53,9 +54,22 @@ blog-agent/
 ## 사용법
 1. `.env` 파일에 아래와 같이 API 키를 입력합니다.
    ```env
-   OPENAI_API_KEY=sk-...
-   TAVILY_API_KEY=tvly-...
-   # (필요시) LANGCHAIN_API_KEY=...
+   # LLM Provider (하나 이상 설정, 우선순위: OpenAI > Gemini > Claude)
+   OPENAI_API_KEY=sk-...          # OpenAI API 키 (선택)
+   GEMINI_API_KEY=AIza...         # Google Gemini API 키 (선택)
+   ANTHROPIC_API_KEY=sk-ant-...   # Claude API 키 (선택)
+   
+   # 기타 서비스
+   TAVILY_API_KEY=tvly-...        # 웹 검색용 (필수)
+   LANGCHAIN_API_KEY=...          # LangSmith 트레이싱 (선택)
+   ```
+
+   > **💡 LLM 자동 폴백**: OpenAI 키가 없으면 자동으로 Gemini나 Claude로 전환됩니다. 최소 하나의 LLM 키만 있으면 작동합니다.
+
+2. 개발 서버 실행:
+   ```bash
+   cd backand
+   uv run langgraph dev
    ```
 
 

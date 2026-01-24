@@ -14,11 +14,13 @@ dependencies = [
     "langgraph>=1.0.0",
     "markdown>=3.10",
     "playwright>=1.57.0",
+    "python-dotenv>=1.0.1",
 ]
 
 [dependency-groups]
 test = [
     "pytest",
+    "pytest-asyncio",
     "langgraph-cli[inmem]",
 ]
 lint = [
