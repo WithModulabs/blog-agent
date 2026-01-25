@@ -22,8 +22,16 @@ async def chat(request: ChatRequest) -> ChatResponse:
     try:
         result = await graph.ainvoke({"query": request.query}, config)
 
+        # Extract response: prefer 'result' field, fall back to last message content
+        response_text = result.get("result", "")
+        if not response_text:
+            messages = result.get("messages", [])
+            if messages:
+                last_message = messages[-1]
+                response_text = getattr(last_message, "content", str(last_message))
+
         return ChatResponse(
-            result=result.get("result", ""),
+            result=response_text,
             thread_id=thread_id,
         )
 
