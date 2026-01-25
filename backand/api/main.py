@@ -13,8 +13,10 @@ from api.routes import blog, chat, health
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     # Startup
+    blog.start_cleanup_task()
     yield
     # Shutdown
+    await blog.stop_cleanup_task()
 
 
 def create_app() -> FastAPI:

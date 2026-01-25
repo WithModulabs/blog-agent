@@ -1,6 +1,8 @@
 """Blog writer API endpoints with human-in-the-loop interrupt handling."""
 
 import asyncio
+import logging
+import time
 import uuid
 from typing import Any
 
@@ -17,7 +19,13 @@ from api.schemas.blog import (
     SEOMeta,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Job store configuration
+JOB_TTL_SECONDS = 3600  # 1 hour TTL for completed/failed jobs
+MAX_JOBS = 1000  # Maximum number of jobs to retain
+CLEANUP_INTERVAL_SECONDS = 300  # Run cleanup every 5 minutes
 
 # In-memory job store with async lock for single-worker concurrency safety.
 # NOTE: This is only safe for a single-worker async deployment. For multi-worker
@@ -25,6 +33,66 @@ router = APIRouter()
 # external store like Redis or a database to share state across workers.
 _jobs: dict[str, dict[str, Any]] = {}
 _jobs_lock = asyncio.Lock()
+_cleanup_task: asyncio.Task | None = None
+
+
+async def _cleanup_expired_jobs() -> None:
+    """Periodic cleanup of expired and excess job entries."""
+    while True:
+        try:
+            await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+            now = time.time()
+
+            async with _jobs_lock:
+                # Remove expired completed/failed jobs
+                expired_ids = [
+                    job_id
+                    for job_id, job in _jobs.items()
+                    if job["status"] in (JobStatus.COMPLETED, JobStatus.FAILED)
+                    and now - job.get("created_at", now) > JOB_TTL_SECONDS
+                ]
+                for job_id in expired_ids:
+                    del _jobs[job_id]
+
+                if expired_ids:
+                    logger.info("Cleaned up %d expired jobs", len(expired_ids))
+
+                # Enforce size cap by removing oldest entries
+                if len(_jobs) > MAX_JOBS:
+                    sorted_jobs = sorted(
+                        _jobs.items(),
+                        key=lambda x: x[1].get("created_at", 0),
+                    )
+                    excess_count = len(_jobs) - MAX_JOBS
+                    for job_id, _ in sorted_jobs[:excess_count]:
+                        del _jobs[job_id]
+                    logger.info("Evicted %d oldest jobs (size cap)", excess_count)
+
+        except asyncio.CancelledError:
+            logger.info("Job cleanup task cancelled")
+            break
+        except Exception:
+            logger.exception("Error in job cleanup task")
+
+
+def start_cleanup_task() -> None:
+    """Start the background cleanup task. Call from app lifespan startup."""
+    global _cleanup_task
+    if _cleanup_task is None or _cleanup_task.done():
+        _cleanup_task = asyncio.create_task(_cleanup_expired_jobs())
+        logger.info("Started job cleanup background task")
+
+
+async def stop_cleanup_task() -> None:
+    """Stop the background cleanup task. Call from app lifespan shutdown."""
+    global _cleanup_task
+    if _cleanup_task is not None and not _cleanup_task.done():
+        _cleanup_task.cancel()
+        try:
+            await _cleanup_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Stopped job cleanup background task")
 
 
 @router.post("/generate", response_model=BlogJobResponse)
@@ -60,6 +128,7 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
                 "status": JobStatus.WAITING_FOR_INPUT,
                 "config": config,
                 "suggested_keywords": suggested_keywords,
+                "created_at": time.time(),
             }
 
         return BlogJobResponse(
@@ -74,6 +143,7 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
             _jobs[job_id] = {
                 "status": JobStatus.FAILED,
                 "error": str(e),
+                "created_at": time.time(),
             }
         raise HTTPException(status_code=500, detail=str(e)) from e
 
