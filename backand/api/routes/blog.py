@@ -139,13 +139,16 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
         )
 
     except Exception as e:
+        logger.exception("Blog generation failed for job_id=%s", job_id)
         async with _jobs_lock:
             _jobs[job_id] = {
                 "status": JobStatus.FAILED,
-                "error": str(e),
+                "error": str(e),  # Keep for internal diagnostics
                 "created_at": time.time(),
             }
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(
+            status_code=500, detail="Blog generation failed"
+        ) from None
 
 
 @router.post("/{job_id}/resume", response_model=BlogJobResponse)
@@ -213,10 +216,13 @@ async def resume_blog_generation(
         )
 
     except Exception as e:
+        logger.exception("Blog generation resume failed for job_id=%s", job_id)
         async with _jobs_lock:
             _jobs[job_id]["status"] = JobStatus.FAILED
-            _jobs[job_id]["error"] = str(e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            _jobs[job_id]["error"] = str(e)  # Keep for internal diagnostics
+        raise HTTPException(
+            status_code=500, detail="Blog generation failed"
+        ) from None
 
 
 @router.get("/{job_id}/status", response_model=BlogJobStatusResponse)
