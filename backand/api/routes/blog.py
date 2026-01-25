@@ -114,7 +114,7 @@ async def resume_blog_generation(
             html_content=result.get("html_content", ""),
             suggested_keywords=job.get("suggested_keywords", []),
             selected_keywords=request.selected_keywords,
-            seo_meta=SEOMeta(**result.get("seo_meta", {"title": "", "description": ""})),
+            seo_meta=SEOMeta(**(result.get("seo_meta") or {"title": "", "description": ""})),
             image_urls=result.get("image_urls", []),
         )
 
