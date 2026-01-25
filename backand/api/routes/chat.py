@@ -1,11 +1,14 @@
 """Chat API endpoints."""
 
+import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException
 
 from api.dependencies import get_chat_graph
 from api.schemas.chat import ChatRequest, ChatResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -35,5 +38,13 @@ async def chat(request: ChatRequest) -> ChatResponse:
             thread_id=thread_id,
         )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except HTTPException:
+        # Re-raise HTTP exceptions from upstream as-is
+        raise
+    except Exception:
+        # Log full exception server-side, return generic error to client
+        logger.exception("Error processing chat request for thread_id=%s", thread_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error",
+        ) from None
