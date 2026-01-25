@@ -14,8 +14,6 @@ Official document URL:
     - Nodes: https://docs.langchain.com/oss/python/langgraph/graph-api#nodes
 """
 
-from langchain_core.messages import AIMessage
-
 from casts.base_node import AsyncBaseNode, BaseNode
 
 
@@ -39,7 +37,7 @@ class SampleNode(BaseNode):
         Returns:
             dict: State updates (must be a dict)
         """
-        return {"messages": [AIMessage(content="Welcome to the Act! by Sync Node")]}
+        return {"result": "Welcome to the Act!"}
 
 
 class AsyncSampleNode(AsyncBaseNode):
@@ -62,4 +60,4 @@ class AsyncSampleNode(AsyncBaseNode):
         Returns:
             dict: State updates (must be a dict)
         """
-        return {"messages": [AIMessage(content="Welcome to the Act! by Async Node")]}
+        return {"result": "Welcome to the Act!"}
