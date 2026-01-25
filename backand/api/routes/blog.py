@@ -4,8 +4,8 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from langgraph.types import Command
 
+from api.dependencies import get_blog_writer_graph
 from api.schemas.blog import (
     BlogJobResponse,
     BlogJobStatusResponse,
@@ -15,17 +15,11 @@ from api.schemas.blog import (
     KeywordSelectionRequest,
     SEOMeta,
 )
-from casts.blog_writer.graph import blog_writer_graph
 
 router = APIRouter()
 
 # In-memory job store (use Redis/DB in production)
 _jobs: dict[str, dict[str, Any]] = {}
-
-
-def _get_graph():
-    """Get compiled blog writer graph."""
-    return blog_writer_graph.build()
 
 
 @router.post("/generate", response_model=BlogJobResponse)
@@ -35,7 +29,7 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
     Runs until the keyword selection interrupt, then returns suggested keywords.
     """
     job_id = str(uuid.uuid4())
-    graph = _get_graph()
+    graph = get_blog_writer_graph()
 
     # Prepare input
     input_state = {
@@ -49,7 +43,7 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
 
     try:
         # Run until interrupt (at human_select_keywords)
-        result = await graph.ainvoke(input_state, config)
+        await graph.ainvoke(input_state, config)
 
         # Get current state to extract suggested keywords
         state = await graph.aget_state(config)
@@ -57,7 +51,6 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
         # Store job state
         _jobs[job_id] = {
             "status": JobStatus.WAITING_FOR_INPUT,
-            "state": state,
             "config": config,
             "suggested_keywords": state.values.get("suggested_keywords", []),
         }
@@ -74,7 +67,7 @@ async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
             "status": JobStatus.FAILED,
             "error": str(e),
         }
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{job_id}/resume", response_model=BlogJobResponse)
@@ -93,18 +86,28 @@ async def resume_blog_generation(
             detail=f"Job is not waiting for input. Current status: {job['status']}",
         )
 
-    graph = _get_graph()
+    # Validate selected_keywords
+    if not request.selected_keywords:
+        raise HTTPException(
+            status_code=422,
+            detail="selected_keywords must contain at least one keyword",
+        )
+
+    graph = get_blog_writer_graph()
     config = job["config"]
 
     try:
         # Update status
         _jobs[job_id]["status"] = JobStatus.RUNNING
 
-        # Resume graph with selected keywords using Command
-        result = await graph.ainvoke(
-            Command(resume={"selected_keywords": request.selected_keywords}),
+        # Update state with selected keywords, then resume
+        await graph.aupdate_state(
             config,
+            {"selected_keywords": request.selected_keywords},
         )
+
+        # Resume graph execution (pass None to continue from checkpoint)
+        result = await graph.ainvoke(None, config)
 
         # Build response
         blog_response = BlogResponse(
@@ -129,7 +132,7 @@ async def resume_blog_generation(
     except Exception as e:
         _jobs[job_id]["status"] = JobStatus.FAILED
         _jobs[job_id]["error"] = str(e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{job_id}/status", response_model=BlogJobStatusResponse)
