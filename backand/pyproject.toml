@@ -15,9 +15,9 @@ dependencies = [
     "langgraph>=1.0.0",
     "markdown>=3.10",
     "playwright>=1.57.0",
-    "pydantic-settings>=2.0.0",
+    "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.1",
-    "uvicorn>=0.34.0",
+    "uvicorn[standard]>=0.34.0",
 ]
 
 [dependency-groups]
