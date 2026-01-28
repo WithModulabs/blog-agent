@@ -4,11 +4,10 @@ Includes web scraping and image generation/fetching tools.
 """
 
 import os
+from typing import Optional
 
 import httpx
 from bs4 import BeautifulSoup
-
-from typing import Optional
 
 from casts.blog_writer.modules.state import ImageProvider, ScraperType
 
