@@ -20,89 +20,87 @@ blog-agent/
 ├── LICENSE                      # 라이선스 파일
 ├── blog-agent.code-workspace    # VS Code 워크스페이스 설정
 ├── vercel.json                  # Vercel 배포 설정
+├── pyproject.toml               # 의존성 명세
+├── langgraph.json               # LangGraph 설정
+├── uv.lock                      # 패키지 잠금 파일
+├── .env.example                 # 환경변수 템플릿
 │
-└── backand/                     # 백엔드 서버
-    ├── pyproject.toml           # 의존성 명세
-    ├── langgraph.json           # LangGraph 설정
-    ├── uv.lock                  # 패키지 잠금 파일
-    ├── .env.example             # 환경변수 템플릿
-    │
-    ├── api/                     # FastAPI 기반 REST API (Vercel 배포용)
-    │   ├── index.py             # Vercel 진입점
-    │   ├── main.py              # FastAPI 앱 설정
-    │   ├── config.py            # API 설정
-    │   ├── dependencies.py      # 의존성 주입
-    │   ├── routes/              # 라우트 핸들러
-    │   │   ├── blog.py          # 블로그 생성 API
-    │   │   ├── chat.py          # 채팅 API
-    │   │   └── health.py        # 헬스체크 API
-    │   └── schemas/             # Pydantic 스키마
-    │       ├── blog.py
-    │       ├── chat.py
-    │       └── health.py
-    │
-    ├── app/                     # FastAPI 앱 (로컬 개발용)
-    │   ├── main.py              # FastAPI 앱 진입점
-    │   ├── config.py            # 앱 설정
-    │   ├── api/v1/              # API v1 라우터
-    │   │   ├── router.py
-    │   │   └── endpoints/
-    │   │       └── posts.py     # 포스트 엔드포인트
-    │   ├── schemas/             # 스키마 정의
-    │   │   └── post.py
-    │   └── services/            # 비즈니스 로직
-    │       └── post_service.py
-    │
-    ├── casts/                   # 멀티에이전트 파이프라인 코어
-    │   ├── base_graph.py        # 그래프 기본 클래스
-    │   ├── base_node.py         # 노드 기본 클래스
-    │   │
-    │   ├── chat/                # 채팅 에이전트 모듈
-    │   │   ├── graph.py         # LangGraph 워크플로우 정의
-    │   │   └── modules/         # 모듈 컴포넌트
-    │   │       ├── agents.py    # 에이전트 정의
-    │   │       ├── nodes.py     # 노드 구현
-    │   │       ├── state.py     # 상태 관리
-    │   │       ├── prompts.py   # 프롬프트 템플릿
-    │   │       ├── tools.py     # 도구 정의
-    │   │       ├── models.py    # 데이터 모델
-    │   │       ├── conditions.py    # 조건 분기 로직
-    │   │       ├── middlewares.py   # 미들웨어
-    │   │       └── utils.py     # 유틸리티 함수
-    │   │
-    │   └── blog_writer/         # 블로그 작성 에이전트 모듈
-    │       ├── graph.py         # 블로그 작성 워크플로우
-    │       └── modules/         # 모듈 컴포넌트
-    │           ├── agents.py    # 에이전트 정의
-    │           ├── nodes.py     # 노드 구현
-    │           ├── state.py     # 상태 관리
-    │           ├── prompts.py   # 프롬프트 템플릿
-    │           ├── tools.py     # 도구 정의 (웹 검색, 이미지 생성 등)
-    │           ├── models.py    # 데이터 모델
-    │           ├── conditions.py    # 조건 분기 로직
-    │           ├── middlewares.py   # 미들웨어
-    │           └── utils.py     # 유틸리티 함수
-    │
-    └── tests/                   # 테스트 코드
-        ├── api_tests/           # API 테스트
-        │   ├── conftest.py
-        │   └── test_health.py
-        ├── cast_tests/          # 에이전트 파이프라인 테스트
-        │   ├── conftest.py
-        │   ├── chat_test.py
-        │   ├── blog_writer_test.py
-        │   └── test_blog_writer_nodes.py
-        └── node_tests/          # 노드 단위 테스트
-            └── test_node.py
+├── api/                         # FastAPI 기반 REST API (Vercel 배포용)
+│   ├── index.py                 # Vercel 진입점
+│   ├── main.py                  # FastAPI 앱 설정
+│   ├── config.py                # API 설정
+│   ├── dependencies.py          # 의존성 주입
+│   ├── routes/                  # 라우트 핸들러
+│   │   ├── blog.py              # 블로그 생성 API
+│   │   ├── chat.py              # 채팅 API
+│   │   └── health.py            # 헬스체크 API
+│   └── schemas/                 # Pydantic 스키마
+│       ├── blog.py
+│       ├── chat.py
+│       └── health.py
+│
+├── app/                         # FastAPI 앱 (로컬 개발용)
+│   ├── main.py                  # FastAPI 앱 진입점
+│   ├── config.py                # 앱 설정
+│   ├── api/v1/                  # API v1 라우터
+│   │   ├── router.py
+│   │   └── endpoints/
+│   │       └── posts.py         # 포스트 엔드포인트
+│   ├── schemas/                 # 스키마 정의
+│   │   └── post.py
+│   └── services/                # 비즈니스 로직
+│       └── post_service.py
+│
+├── casts/                       # 멀티에이전트 파이프라인 코어
+│   ├── base_graph.py            # 그래프 기본 클래스
+│   ├── base_node.py             # 노드 기본 클래스
+│   │
+│   ├── chat/                    # 채팅 에이전트 모듈
+│   │   ├── graph.py             # LangGraph 워크플로우 정의
+│   │   └── modules/             # 모듈 컴포넌트
+│   │       ├── agents.py        # 에이전트 정의
+│   │       ├── nodes.py         # 노드 구현
+│   │       ├── state.py         # 상태 관리
+│   │       ├── prompts.py       # 프롬프트 템플릿
+│   │       ├── tools.py         # 도구 정의
+│   │       ├── models.py        # 데이터 모델
+│   │       ├── conditions.py    # 조건 분기 로직
+│   │       ├── middlewares.py   # 미들웨어
+│   │       └── utils.py         # 유틸리티 함수
+│   │
+│   └── blog_writer/             # 블로그 작성 에이전트 모듈
+│       ├── graph.py             # 블로그 작성 워크플로우
+│       └── modules/             # 모듈 컴포넌트
+│           ├── agents.py        # 에이전트 정의
+│           ├── nodes.py         # 노드 구현
+│           ├── state.py         # 상태 관리
+│           ├── prompts.py       # 프롬프트 템플릿
+│           ├── tools.py         # 도구 정의 (웹 검색, 이미지 생성 등)
+│           ├── models.py        # 데이터 모델
+│           ├── conditions.py    # 조건 분기 로직
+│           ├── middlewares.py   # 미들웨어
+│           └── utils.py         # 유틸리티 함수
+│
+└── tests/                       # 테스트 코드
+    ├── api_tests/               # API 테스트
+    │   ├── conftest.py
+    │   └── test_health.py
+    ├── cast_tests/              # 에이전트 파이프라인 테스트
+    │   ├── conftest.py
+    │   ├── chat_test.py
+    │   ├── blog_writer_test.py
+    │   └── test_blog_writer_nodes.py
+    └── node_tests/              # 노드 단위 테스트
+        └── test_node.py
 ```
 
 ### 주요 디렉토리 설명
-- **backand/api/**: Vercel 배포용 FastAPI REST API 서버
-- **backand/app/**: 로컬 개발용 FastAPI 앱
-- **backand/casts/**: 멀티에이전트 파이프라인의 핵심 구현체
+- **api/**: Vercel 배포용 FastAPI REST API 서버
+- **app/**: 로컬 개발용 FastAPI 앱
+- **casts/**: 멀티에이전트 파이프라인의 핵심 구현체
   - **chat/**: 대화형 에이전트 모듈
   - **blog_writer/**: 블로그 자동 작성 에이전트 모듈
-- **backand/tests/**: API, 에이전트, 노드별 테스트 코드
+- **tests/**: API, 에이전트, 노드별 테스트 코드
 
 
 ## 사용법
@@ -122,7 +120,6 @@ blog-agent/
 
 2. 개발 서버 실행:
    ```bash
-   cd backand
    uv run langgraph dev
    ```
 

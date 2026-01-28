@@ -1,5 +1,14 @@
 """FastAPI application entry point."""
 
+import sys
+from pathlib import Path
+
+# Add project root to sys.path for Vercel
+path = Path(__file__).resolve().parent.parent
+if str(path) not in sys.path:
+    sys.path.insert(0, str(path))
+
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
