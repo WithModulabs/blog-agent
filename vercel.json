@@ -9,10 +9,10 @@
             }
         }
     ],
-    "rewrites": [
+    "routes": [
         {
-            "source": "/(.*)",
-            "destination": "/backand/api/index.py"
+            "src": "/(.*)",
+            "dest": "backand/api/index.py"
         }
     ]
 }
