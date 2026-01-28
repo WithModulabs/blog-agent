@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
-from api.routes import blog, chat, health
+from api.routes import blog, chat, health, posts, tools
 
 
 @asynccontextmanager
@@ -59,6 +59,16 @@ def create_app() -> FastAPI:
         chat.router,
         prefix=f"{settings.api_v1_prefix}/chat",
         tags=["chat"],
+    )
+    app.include_router(
+        posts.router,
+        prefix=f"{settings.api_v1_prefix}",
+        tags=["posts"],
+    )
+    app.include_router(
+        tools.router,
+        prefix=f"{settings.api_v1_prefix}/tools",
+        tags=["tools"],
     )
 
     return app

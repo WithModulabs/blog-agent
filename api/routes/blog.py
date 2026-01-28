@@ -240,3 +240,16 @@ async def get_job_status(job_id: str) -> BlogJobStatusResponse:
         result=job.get("result"),
         error=job.get("error"),
     )
+@router.get("/jobs", response_model=list[BlogJobStatusResponse])
+async def list_jobs() -> list[BlogJobStatusResponse]:
+    """List all blog generation jobs in memory."""
+    async with _jobs_lock:
+        return [
+            BlogJobStatusResponse(
+                job_id=job_id,
+                status=job["status"],
+                result=job.get("result"),
+                error=job.get("error"),
+            )
+            for job_id, job in _jobs.items()
+        ]

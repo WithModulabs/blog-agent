@@ -1,28 +1,25 @@
-from fastapi import FastAPI
-import os
+"""Vercel serverless handler for FastAPI app."""
+
 import sys
 from pathlib import Path
 
-app = FastAPI()
+# Add project root to sys.path
+path = Path(__file__).resolve().parent.parent
+if str(path) not in sys.path:
+    sys.path.insert(0, str(path))
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Blog Agent API is running!",
-        "cwd": os.getcwd(),
-        "python_version": sys.version
-    }
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "mode": "standalone_test"}
-
-# 여기에 실제 메인 앱 임포트 시도를 주석 처리하거나 하단에 배치하여 
-# 최소한 위의 health 체크는 무조건 동작하게 합니다.
+# Export the app from api.main directly for Vercel
 try:
-    from api.main import app as main_app
-    app.mount("/api/v1", main_app) # 기존 앱을 하위 경로로 마운트 시도
+    from api.main import app
 except Exception as e:
-    @app.get("/debug")
-    async def debug():
-        return {"import_error": str(e)}
+    # Minimal fallback for debugging if migration fails
+    from fastapi import FastAPI
+    app = FastAPI(title="Blog Agent API (Fallback)")
+    
+    @app.get("/health")
+    async def health():
+        return {"status": "import_error", "detail": str(e)}
+    
+    @app.get("/")
+    async def root():
+        return {"error": str(e)}

@@ -10,6 +10,7 @@ from api.schemas.blog import (
 )
 from api.schemas.chat import ChatRequest, ChatResponse
 from api.schemas.health import HealthResponse, ReadinessResponse
+from api.schemas.post import PostBase, PostCreate, PostResponse, PostUpdate
 
 __all__ = [
     "BlogJobResponse",
@@ -22,4 +23,8 @@ __all__ = [
     "JobStatus",
     "KeywordSelectionRequest",
     "ReadinessResponse",
+    "PostBase",
+    "PostCreate",
+    "PostResponse",
+    "PostUpdate",
 ]

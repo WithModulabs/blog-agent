@@ -1,5 +1,5 @@
 """API route handlers."""
 
-from api.routes import blog, chat, health
+from api.routes import blog, chat, health, posts, tools
 
-__all__ = ["blog", "chat", "health"]
+__all__ = ["blog", "chat", "health", "posts", "tools"]

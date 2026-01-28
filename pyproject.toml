@@ -14,70 +14,10 @@ dependencies = [
     "langchain-openai>=1.1.6",
     "langgraph>=1.0.0",
     "markdown>=3.10",
-    "playwright>=1.57.0",
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.1",
     "uvicorn[standard]>=0.34.0",
 ]
-
-[dependency-groups]
-test = [
-    "pytest",
-    "pytest-asyncio",
-    "langgraph-cli[inmem]",
-]
-lint = [
-    "pre-commit",
-    "ruff",
-]
-dev = [
-    "act-operator>=0.1.3",
-    {include-group = "test"},
-    {include-group = "lint"},
-]
-
-[tool.pyright]
-include = ["api", "casts", "tests"]
-exclude = [
-    "**/__pycache__/*", 
-    ".venv", 
-    "**/.venv"
-]
-
-[tool.uv.workspace]
-members = ["casts/*"]
-exclude = [
-    "casts/__pycache__",
-    "casts/**/__pycache__",
-    "casts/**/.venv",
-    "casts/.DS_Store",
-]
-
-[tool.ruff]
-exclude = [
-    "(^|/)(.venv|venv|node_modules|__pycache__|.pytest_cache|.ruff_cache|migrations|static|templates|.git|.github|.langgraph_api|media)(/|$)",
-    "^tests(/|$)",
-    "^unit_tests(/|$)",
-    ".env",
-    ".env.example",
-    ".gitignore",
-    "LICENSE",
-    "README.md",
-    "langgraph.json",
-    "uv.lock"
-]
-lint.select = [
-    "E",
-    "F",
-    "I",
-    "B",
-]
-lint.ignore = [
-    "E501",
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = ["B905"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

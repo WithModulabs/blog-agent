@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 
-from app.schemas.post import PostCreate, PostUpdate, PostResponse
+from api.schemas.post import PostCreate, PostUpdate, PostResponse
 
 
 class PostService:
