@@ -16,7 +16,7 @@ jobs:
           cache-suffix: "ruff"
 
       - name: Install dependencies (dev)
-        run: uv sync --all-packages
+        run: uv sync --all-extras
 
       - name: Ruff Lint with fix
         run: uv run ruff check . --fix
