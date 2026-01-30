@@ -42,5 +42,5 @@ def create_chat_agent(
         model=chat_model,
         tools=tools or [],
         middleware=middleware or [],
-        prompt=system_prompt,
+        system_prompt=system_prompt,
     )

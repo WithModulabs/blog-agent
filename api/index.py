@@ -25,20 +25,23 @@ except Exception as import_error:
 
     _error_message = str(import_error)
     _error_traceback = traceback.format_exc()
+    _is_debug = os.getenv("DEBUG", "").lower() in ("1", "true", "yes")
 
     app = FastAPI(title="Blog Agent API (Import Error)")
 
     @app.get("/")
     async def debug_root():
-        return {
-            "error": "Import failed",
-            "message": _error_message,
-            "traceback": _error_traceback,
-            "sys_path": sys.path,
-            "cwd": os.getcwd(),
-            "api_dir_exists": Path("api").exists(),
-            "api_main_exists": Path("api/main.py").exists(),
-        }
+        # Only expose detailed error info in debug mode
+        response = {"error": "Import failed", "message": _error_message}
+        if _is_debug:
+            response.update({
+                "traceback": _error_traceback,
+                "sys_path": sys.path,
+                "cwd": os.getcwd(),
+                "api_dir_exists": Path("api").exists(),
+                "api_main_exists": Path("api/main.py").exists(),
+            })
+        return response
 
     @app.get("/health")
     async def health():

@@ -42,5 +42,5 @@ def create_blog_writer_agent(
         model=model,
         tools=tools or [],
         middleware=middleware or [],
-        prompt=system_prompt,
+        system_prompt=system_prompt,
     )
