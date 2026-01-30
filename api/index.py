@@ -16,25 +16,30 @@ os.environ["VERCEL"] = "1"
 try:
     # Try to import the fully configured app from api/main.py
     from api.main import app
-except Exception as e:
+except Exception as import_error:
     # If import fails, create a minimal app that reports the error.
     # This helps diagnose missing dependencies or path issues on Vercel.
+    import traceback
+
     from fastapi import FastAPI
+
+    _error_message = str(import_error)
+    _error_traceback = traceback.format_exc()
+
     app = FastAPI(title="Blog Agent API (Import Error)")
-    
+
     @app.get("/")
     async def debug_root():
-        import traceback
         return {
             "error": "Import failed",
-            "message": str(e),
-            "traceback": traceback.format_exc(),
+            "message": _error_message,
+            "traceback": _error_traceback,
             "sys_path": sys.path,
             "cwd": os.getcwd(),
             "api_dir_exists": Path("api").exists(),
-            "api_main_exists": Path("api/main.py").exists()
+            "api_main_exists": Path("api/main.py").exists(),
         }
-    
+
     @app.get("/health")
     async def health():
-        return {"status": "error", "message": str(e), "mode": "error_fallback"}
+        return {"status": "error", "message": _error_message, "mode": "error_fallback"}
