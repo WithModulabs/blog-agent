@@ -30,7 +30,7 @@ DEFAULT_MODELS = {
     LLMProvider.OPENAI: "gpt-4o",
     LLMProvider.ANTHROPIC: "claude-3-5-sonnet-20241022",
     LLMProvider.GOOGLE: "gemini-2.0-flash",
-    LLMProvider.OPENROUTER: "openai/gpt-4o",  # OpenRouter uses provider/model format
+    LLMProvider.OPENROUTER: "upstage/solar-pro-3:free",  # OpenRouter free model
 }
 
 # OpenRouter API base URL
