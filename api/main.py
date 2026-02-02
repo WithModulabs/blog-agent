@@ -9,13 +9,13 @@ if str(path) not in sys.path:
     sys.path.insert(0, str(path))
 
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager  # noqa: E402
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from api.config import settings
-from api.routes import blog, chat, health, posts, tools
+from api.config import settings  # noqa: E402
+from api.routes import blog, chat, health, posts, tools  # noqa: E402
 
 
 @asynccontextmanager
