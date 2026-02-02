@@ -65,12 +65,14 @@ class AnalyzeContent(AsyncBaseNode):
         """콘텐츠 분석."""
         raw_content = state["raw_content"]
 
-        # Get LLM provider from config
+        # Get LLM provider and api_keys from config
         llm_provider = LLMProvider.OPENAI
+        api_keys = None
         if state.get("config"):
             llm_provider = LLMProvider(state["config"].get("llm_provider", "openai"))
+            api_keys = state["config"].get("api_keys")
 
-        llm = get_llm(llm_provider)
+        llm = get_llm(llm_provider, api_keys=api_keys)
 
         prompt = ANALYZE_CONTENT_PROMPT.format(raw_content=raw_content)
 
@@ -106,12 +108,14 @@ class SuggestKeywords(AsyncBaseNode):
         analyzed = state["analyzed_content"]
         user_keywords = state.get("user_keywords")
 
-        # Get LLM provider from config
+        # Get LLM provider and api_keys from config
         llm_provider = LLMProvider.OPENAI
+        api_keys = None
         if state.get("config"):
             llm_provider = LLMProvider(state["config"].get("llm_provider", "openai"))
+            api_keys = state["config"].get("api_keys")
 
-        llm = get_llm(llm_provider)
+        llm = get_llm(llm_provider, api_keys=api_keys)
 
         user_keywords_section = ""
         if user_keywords:
@@ -174,11 +178,14 @@ class WriteBlog(AsyncBaseNode):
         analyzed = state["analyzed_content"]
         selected_keywords = state["selected_keywords"]
 
+        # Get LLM provider and api_keys from config
         llm_provider = LLMProvider.OPENAI
+        api_keys = None
         if state.get("config"):
             llm_provider = LLMProvider(state["config"].get("llm_provider", "openai"))
+            api_keys = state["config"].get("api_keys")
 
-        llm = get_llm(llm_provider)
+        llm = get_llm(llm_provider, api_keys=api_keys)
 
         prompt = WRITE_BLOG_PROMPT.format(
             title=analyzed.get("title", ""),
@@ -202,11 +209,14 @@ class OptimizeSEO(AsyncBaseNode):
         blog_markdown = state["blog_markdown"]
         selected_keywords = state["selected_keywords"]
 
+        # Get LLM provider and api_keys from config
         llm_provider = LLMProvider.OPENAI
+        api_keys = None
         if state.get("config"):
             llm_provider = LLMProvider(state["config"].get("llm_provider", "openai"))
+            api_keys = state["config"].get("api_keys")
 
-        llm = get_llm(llm_provider)
+        llm = get_llm(llm_provider, api_keys=api_keys)
 
         prompt = OPTIMIZE_SEO_PROMPT.format(
             blog_markdown=blog_markdown[:3000],  # Limit for token budget
@@ -240,16 +250,18 @@ class GenerateImages(AsyncBaseNode):
 
         # Get image provider from config
         image_provider = ImageProvider.DALLE
+        api_keys = None
         if state.get("config"):
             image_provider = ImageProvider(
                 state["config"].get("image_provider", "dalle")
             )
+            api_keys = state["config"].get("api_keys")
 
         llm_provider = LLMProvider.OPENAI
         if state.get("config"):
             llm_provider = LLMProvider(state["config"].get("llm_provider", "openai"))
 
-        llm = get_llm(llm_provider)
+        llm = get_llm(llm_provider, api_keys=api_keys)
 
         # Generate image prompt
         prompt = GENERATE_IMAGE_PROMPT.format(

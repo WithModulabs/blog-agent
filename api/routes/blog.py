@@ -6,9 +6,10 @@ import time
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from api.dependencies import get_blog_writer_graph
+from api.schemas.api_keys import APIKeys, get_api_keys
 from api.schemas.blog import (
     BlogJobResponse,
     BlogJobStatusResponse,
@@ -96,19 +97,31 @@ async def stop_cleanup_task() -> None:
 
 
 @router.post("/generate", response_model=BlogJobResponse)
-async def start_blog_generation(request: BlogRequest) -> BlogJobResponse:
+async def start_blog_generation(
+    request: BlogRequest,
+    api_keys: APIKeys = Depends(get_api_keys),
+) -> BlogJobResponse:
     """Start blog generation process.
 
     Runs until the keyword selection interrupt, then returns suggested keywords.
+    
+    API keys can be provided via HTTP headers:
+    - X-OpenAI-API-Key
+    - X-Anthropic-API-Key
+    - X-Google-API-Key
+    - X-OpenRouter-API-Key
     """
     job_id = str(uuid.uuid4())
     graph = get_blog_writer_graph()
 
-    # Prepare input
+    # Prepare input with api_keys in config
+    config_dict = request.config.model_dump() if request.config else {}
+    config_dict["api_keys"] = api_keys  # Inject API keys into config
+    
     input_state = {
         "url": str(request.url),
         "user_keywords": request.user_keywords,
-        "config": request.config.model_dump() if request.config else {},
+        "config": config_dict,
     }
 
     # Create thread config for state persistence
