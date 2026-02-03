@@ -12,7 +12,6 @@ Official document URL:
     - Embedding Models: https://docs.langchain.com/oss/python/integrations/text_embedding
 """
 
-from typing import Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel

@@ -1,7 +1,6 @@
 """Utility and Tool API endpoints."""
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
