@@ -60,8 +60,12 @@ async def fetch_with_playwright(url: str) -> str:
 
         await page.goto(url, wait_until="networkidle")
 
-        # Get main content
-        content = await page.content()
+        # Handle Naver blog iframe
+        if "blog.naver.com" in url:
+            content = await _extract_naver_blog_content(page)
+        else:
+            content = await page.content()
+
         await browser.close()
 
     soup = BeautifulSoup(content, "html.parser")
@@ -74,10 +78,36 @@ async def fetch_with_playwright(url: str) -> str:
     return "\n".join(lines)
 
 
+async def _extract_naver_blog_content(page) -> str:
+    """Extract content from Naver blog iframe.
+
+    Naver blogs load actual content inside an iframe.
+    """
+    try:
+        # Wait for iframe to load
+        iframe_element = await page.wait_for_selector(
+            "iframe#mainFrame", timeout=10000
+        )
+        if iframe_element:
+            frame = await iframe_element.content_frame()
+            if frame:
+                # Wait for content to render inside iframe
+                await frame.wait_for_selector(
+                    ".se-main-container, .post-view, #postViewArea",
+                    timeout=10000,
+                )
+                return await frame.content()
+    except Exception:
+        pass
+
+    # Fallback to main page content
+    return await page.content()
+
+
 async def fetch_content(
     url: str, scraper_type: ScraperType = ScraperType.BEAUTIFULSOUP
 ) -> str:
-    """Fetch web content using configured scraper.
+    """Fetch web content using configured scraper with fallback support.
 
     Args:
         url: URL to fetch
@@ -86,9 +116,35 @@ async def fetch_content(
     Returns:
         Extracted text content
     """
+    # If explicitly requested Playwright, use it directly
     if scraper_type == ScraperType.PLAYWRIGHT:
         return await fetch_with_playwright(url)
-    return await fetch_with_beautifulsoup(url)
+
+    # Try BeautifulSoup first
+    content = await fetch_with_beautifulsoup(url)
+
+    # Fallback to Playwright if content seems insufficient
+    # (JS-rendered sites like Naver blog return minimal content with BS4)
+    if len(content) < 200 or _is_js_rendered_site(url):
+        try:
+            playwright_content = await fetch_with_playwright(url)
+            if len(playwright_content) > len(content):
+                return playwright_content
+        except Exception:
+            pass  # Stick with BS4 content if Playwright fails
+
+    return content
+
+
+def _is_js_rendered_site(url: str) -> bool:
+    """Check if URL is known to require JavaScript rendering."""
+    js_sites = [
+        "blog.naver.com",
+        "m.blog.naver.com",
+        "post.naver.com",
+        "brunch.co.kr",
+    ]
+    return any(site in url for site in js_sites)
 
 
 # =============================================================================
