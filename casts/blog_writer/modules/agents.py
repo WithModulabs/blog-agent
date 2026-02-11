@@ -13,7 +13,6 @@ Official document URL:
 from typing import Optional
 
 from langchain.agents import create_agent
-from langchain_core.language_models import BaseChatModel
 
 from .models import get_llm
 from .state import LLMProvider

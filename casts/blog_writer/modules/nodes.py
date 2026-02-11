@@ -13,6 +13,7 @@ Implements 8 nodes as specified in CLAUDE.md:
 
 import json
 import re
+from typing import Any, Optional
 
 import markdown
 
@@ -31,6 +32,50 @@ from casts.blog_writer.modules.state import (
     ScraperType,
 )
 from casts.blog_writer.modules.tools import fetch_content, generate_image
+
+
+def _extract_json(text: str) -> Optional[Any]:
+    """Extract JSON from LLM response text.
+
+    Handles multiple formats:
+    1. ```json ... ``` code blocks
+    2. ``` ... ``` code blocks without language tag
+    3. Raw JSON object {...}
+    4. Raw JSON array [...]
+    """
+    # Try code block with json tag
+    json_match = re.search(r"```json\s*([\s\S]*?)```", text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # Try code block without tag
+    json_match = re.search(r"```\s*([\s\S]*?)```", text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # Try to find raw JSON object
+    json_match = re.search(r"\{[\s\S]*\}", text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    # Try to find raw JSON array
+    json_match = re.search(r"\[[\s\S]*\]", text)
+    if json_match:
+        try:
+            return json.loads(json_match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 class FetchContent(AsyncBaseNode):
@@ -79,15 +124,8 @@ class AnalyzeContent(AsyncBaseNode):
         self.log("컨텐츠 분석 중...")
         response = await llm.ainvoke(prompt)
 
-        try:
-            # Parse JSON from response
-            content = response.content
-            # Extract JSON from markdown code block if present
-            json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
-            if json_match:
-                content = json_match.group(1)
-            analyzed_content = json.loads(content)
-        except json.JSONDecodeError:
+        analyzed_content = _extract_json(response.content)
+        if not analyzed_content:
             # Fallback structure
             analyzed_content = {
                 "title": "Untitled",
@@ -134,14 +172,13 @@ class SuggestKeywords(AsyncBaseNode):
         self.log("키워드 추천 중...")
         response = await llm.ainvoke(prompt)
 
-        try:
-            content = response.content
-            json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
-            if json_match:
-                content = json_match.group(1)
-            data = json.loads(content)
+        data = _extract_json(response.content)
+        if data and isinstance(data, dict) and "keywords" in data:
             suggested_keywords = data.get("keywords", [])[:30]
-        except json.JSONDecodeError:
+        elif data and isinstance(data, list):
+            # Handle case where LLM returns just an array
+            suggested_keywords = data[:30]
+        else:
             # Fallback: extract any quoted words
             suggested_keywords = re.findall(r'"([^"]+)"', response.content)[:30]
 
@@ -226,13 +263,8 @@ class OptimizeSEO(AsyncBaseNode):
         self.log("SEO 최적화 중...")
         response = await llm.ainvoke(prompt)
 
-        try:
-            content = response.content
-            json_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
-            if json_match:
-                content = json_match.group(1)
-            seo_meta = json.loads(content)
-        except json.JSONDecodeError:
+        seo_meta = _extract_json(response.content)
+        if not seo_meta:
             seo_meta = {
                 "title": "Blog Post",
                 "description": blog_markdown[:160],
