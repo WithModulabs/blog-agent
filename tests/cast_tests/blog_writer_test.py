@@ -102,7 +102,7 @@ class TestBlogWriterGraphIntegration:
             async for event in graph.astream(
                 {"url": "https://example.com", "user_keywords": None},
                 config=config,
-                stream_mode="updates"
+                stream_mode="updates",
             ):
                 result = event
 
@@ -123,11 +123,11 @@ class TestBlogWriterGraphIntegration:
             patch("casts.blog_writer.modules.nodes.get_llm") as mock_get_llm,
         ):
             mock_llm = AsyncMock()
-            
+
             # Return 35 keywords to test slicing at 30
             large_keywords = [f"k{i}" for i in range(1, 36)]
             import json
-            
+
             async def mock_ainvoke(prompt):
                 mock_response = AsyncMock()
                 if "키워드" in prompt:
@@ -140,12 +140,10 @@ class TestBlogWriterGraphIntegration:
             mock_get_llm.return_value = mock_llm
 
             config = {"configurable": {"thread_id": "test-30-thread"}}
-            
+
             suggested_keywords = []
             async for event in graph.astream(
-                {"url": "https://example.com"},
-                config=config,
-                stream_mode="updates"
+                {"url": "https://example.com"}, config=config, stream_mode="updates"
             ):
                 if "suggest_keywords" in event:
                     suggested_keywords = event["suggest_keywords"]["suggested_keywords"]

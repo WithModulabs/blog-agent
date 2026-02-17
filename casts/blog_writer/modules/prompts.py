@@ -59,6 +59,10 @@ WRITE_BLOG_PROMPT = """당신은 전문 블로그 작성자입니다.
 {selected_keywords}
 </keywords>
 
+<web_research>
+{search_results_section}
+</web_research>
+
 요구사항:
 1. 제목(H1)으로 시작
 2. 서론/본론/결론 구조
@@ -67,6 +71,8 @@ WRITE_BLOG_PROMPT = """당신은 전문 블로그 작성자입니다.
 5. 이미지 삽입 위치를 [IMAGE: 설명] 형식으로 표시
 6. 독자 친화적인 톤
 7. 1000-2000자 분량
+8. 웹 리서치 결과를 참고하여 최신 정보와 근거를 포함
+9. 참고한 출처가 있으면 글 끝에 참고 링크로 포함
 
 마크다운 형식으로만 응답하세요."""
 

@@ -34,13 +34,15 @@ except Exception as import_error:
         # Only expose detailed error info in debug mode
         response = {"error": "Import failed", "message": _error_message}
         if _is_debug:
-            response.update({
-                "traceback": _error_traceback,
-                "sys_path": sys.path,
-                "cwd": os.getcwd(),
-                "api_dir_exists": Path("api").exists(),
-                "api_main_exists": Path("api/main.py").exists(),
-            })
+            response.update(
+                {
+                    "traceback": _error_traceback,
+                    "sys_path": sys.path,
+                    "cwd": os.getcwd(),
+                    "api_dir_exists": Path("api").exists(),
+                    "api_main_exists": Path("api/main.py").exists(),
+                }
+            )
         return response
 
     @app.get("/health")

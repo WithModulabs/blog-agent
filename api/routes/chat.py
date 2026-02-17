@@ -20,7 +20,7 @@ async def chat(
     api_keys: APIKeys = Depends(get_api_keys),
 ) -> ChatResponse:
     """Send a message to the chat agent.
-    
+
     API keys can be provided via HTTP headers:
     - X-OpenAI-API-Key
     - X-Anthropic-API-Key

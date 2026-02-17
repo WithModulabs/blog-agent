@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/scrape")
 async def scrape_url(
     url: str = Query(..., description="URL to scrape"),
-    type: ScraperType = Query(ScraperType.BEAUTIFULSOUP, description="Scraper type")
+    type: ScraperType = Query(ScraperType.BEAUTIFULSOUP, description="Scraper type"),
 ):
     """Scrape content from a URL directly."""
     try:
@@ -28,7 +28,9 @@ async def scrape_url(
 @router.get("/images/search")
 async def search_images(
     query: str = Query(..., description="Search query"),
-    provider: ImageProvider = Query(ImageProvider.UNSPLASH, description="Image provider")
+    provider: ImageProvider = Query(
+        ImageProvider.UNSPLASH, description="Image provider"
+    ),
 ):
     """Search or generate images directly."""
     try:

@@ -1,10 +1,11 @@
 """Node implementations for Blog Writer cast.
 
-Implements 8 nodes as specified in CLAUDE.md:
+Implements 9 nodes:
 - FetchContent: URL에서 웹 콘텐츠 수집
 - AnalyzeContent: 핵심 내용 분석 및 요약
 - SuggestKeywords: 키워드 최대 30개 제안
 - HumanSelectKeywords: 사용자 키워드 선택 (interrupt)
+- WebResearch: 선택된 키워드로 웹 리서치 (Tavily)
 - WriteBlog: 블로그 마크다운 작성
 - OptimizeSEO: SEO 메타 정보 생성
 - GenerateImages: 이미지 생성/수집
@@ -30,8 +31,9 @@ from casts.blog_writer.modules.state import (
     ImageProvider,
     LLMProvider,
     ScraperType,
+    SearchProvider,
 )
-from casts.blog_writer.modules.tools import fetch_content, generate_image
+from casts.blog_writer.modules.tools import fetch_content, generate_image, web_search
 
 
 def _extract_json(text: str) -> Optional[Any]:
@@ -92,7 +94,9 @@ class FetchContent(AsyncBaseNode):
                 state["config"].get("scraper_type", "beautifulsoup")
             )
 
-        self.log(f"다음 URL에서 컨텐츠를 가져오는 중: {url} (스크레이퍼: {scraper_type})")
+        self.log(
+            f"다음 URL에서 컨텐츠를 가져오는 중: {url} (스크레이퍼: {scraper_type})"
+        )
 
         raw_content = await fetch_content(url, scraper_type)
 
@@ -207,6 +211,45 @@ class HumanSelectKeywords(AsyncBaseNode):
         return {"selected_keywords": selected}
 
 
+class WebResearch(AsyncBaseNode):
+    """선택된 키워드로 웹 리서치 (Tavily)."""
+
+    async def execute(self, state, config=None):
+        """키워드 기반 웹 검색."""
+        selected_keywords = state["selected_keywords"]
+
+        # Get search provider and api_keys from config
+        search_provider = SearchProvider.TAVILY
+        api_key = None
+        if state.get("config"):
+            api_keys = state["config"].get("api_keys")
+            if api_keys:
+                api_key = (
+                    api_keys.get_tavily_key()
+                    if hasattr(api_keys, "get_tavily_key")
+                    else None
+                )
+
+        # Limit to top 5 keywords to avoid excessive API calls
+        search_keywords = selected_keywords[:5]
+
+        self.log(f"웹 리서치 중... (키워드 {len(search_keywords)}개)")
+
+        try:
+            search_results = await web_search(
+                keywords=search_keywords,
+                provider=search_provider,
+                max_results_per_keyword=3,
+                api_key=api_key,
+            )
+            self.log(f"검색 결과 {len(search_results)}건 수집 완료")
+        except Exception as e:
+            self.log(f"웹 리서치 실패 (블로그 작성은 계속 진행): {e}")
+            search_results = []
+
+        return {"search_results": search_results}
+
+
 class WriteBlog(AsyncBaseNode):
     """블로그 마크다운 작성."""
 
@@ -214,6 +257,7 @@ class WriteBlog(AsyncBaseNode):
         """블로그 글 작성."""
         analyzed = state["analyzed_content"]
         selected_keywords = state["selected_keywords"]
+        search_results = state.get("search_results", [])
 
         # Get LLM provider and api_keys from config
         llm_provider = LLMProvider.OPENAI
@@ -224,12 +268,22 @@ class WriteBlog(AsyncBaseNode):
 
         llm = get_llm(llm_provider, api_keys=api_keys)
 
+        # Format search results for prompt
+        search_results_section = "검색 결과 없음"
+        if search_results:
+            sections = []
+            for r in search_results:
+                entry = f"- [{r.get('title', '제목 없음')}]({r.get('url', '')})\n  {r.get('content', '')[:300]}"
+                sections.append(entry)
+            search_results_section = "\n".join(sections)
+
         prompt = WRITE_BLOG_PROMPT.format(
             title=analyzed.get("title", ""),
             main_topic=analyzed.get("main_topic", ""),
             key_points=", ".join(analyzed.get("key_points", [])),
             summary=analyzed.get("summary", ""),
             selected_keywords=", ".join(selected_keywords),
+            search_results_section=search_results_section,
         )
 
         self.log("블로그 포스트 작성 중...")
