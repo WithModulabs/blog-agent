@@ -166,14 +166,16 @@ async def search_with_tavily(
         List of search results with url, title, content
     """
     from langchain_tavily import TavilySearch
+    from langchain_tavily._utilities import TavilySearchAPIWrapper
 
     tavily_key = api_key or os.getenv("TAVILY_API_KEY")
     if not tavily_key:
         raise ValueError("TAVILY_API_KEY가 설정되어 있지 않습니다.")
 
+    wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
     tool = TavilySearch(
         max_results=max_results,
-        api_key=tavily_key,
+        api_wrapper=wrapper,
     )
 
     results = await tool.ainvoke({"query": query})

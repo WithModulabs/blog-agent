@@ -31,6 +31,7 @@ class TestBlogWriterGraph:
             "analyze_content",
             "suggest_keywords",
             "human_select_keywords",
+            "web_research",
             "write_blog",
             "optimize_seo",
             "generate_images",

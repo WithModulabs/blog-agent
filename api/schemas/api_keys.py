@@ -18,6 +18,7 @@ class APIKeys(BaseModel):
     anthropic_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
+    tavily_api_key: Optional[str] = None
 
     def get_openai_key(self) -> Optional[str]:
         """Get OpenAI API key (header or env fallback)."""
@@ -39,6 +40,10 @@ class APIKeys(BaseModel):
         """Get OpenRouter API key (header or env fallback)."""
         return self.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
 
+    def get_tavily_key(self) -> Optional[str]:
+        """Get Tavily API key (header or env fallback)."""
+        return self.tavily_api_key or os.getenv("TAVILY_API_KEY")
+
     def has_any_key(self) -> bool:
         """Check if at least one LLM API key is available."""
         return bool(
@@ -54,6 +59,7 @@ async def get_api_keys(
     x_anthropic_api_key: Optional[str] = Header(None, alias="X-Anthropic-API-Key"),
     x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key"),
     x_openrouter_api_key: Optional[str] = Header(None, alias="X-OpenRouter-API-Key"),
+    x_tavily_api_key: Optional[str] = Header(None, alias="X-Tavily-API-Key"),
 ) -> APIKeys:
     """FastAPI dependency to extract API keys from request headers.
 
@@ -62,6 +68,7 @@ async def get_api_keys(
         X-Anthropic-API-Key: Anthropic API key
         X-Google-API-Key: Google/Gemini API key
         X-OpenRouter-API-Key: OpenRouter API key
+        X-Tavily-API-Key: Tavily API key
 
     Falls back to environment variables if headers are not provided.
     """
@@ -70,4 +77,5 @@ async def get_api_keys(
         anthropic_api_key=x_anthropic_api_key,
         google_api_key=x_google_api_key,
         openrouter_api_key=x_openrouter_api_key,
+        tavily_api_key=x_tavily_api_key,
     )
