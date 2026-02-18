@@ -12,6 +12,8 @@
 
 ## 아키텍처 다이어그램
 
+> 키워드 선택 후 Tavily 웹 리서치를 거쳐 최신 정보를 반영한 블로그를 작성합니다.
+
 ```mermaid
 graph TD
     START([START]) --> FetchContent
