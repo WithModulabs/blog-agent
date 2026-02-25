@@ -39,6 +39,12 @@ class ScraperType(str, Enum):
     PLAYWRIGHT = "playwright"
 
 
+class SearchProvider(str, Enum):
+    """Supported web search providers."""
+
+    TAVILY = "tavily"
+
+
 # =============================================================================
 # Configuration Schema
 # =============================================================================
@@ -116,6 +122,7 @@ class BlogState(TypedDict, total=False):
         analyzed_content: Analyzed/summarized content
         suggested_keywords: AI-suggested keywords (up to 30)
         selected_keywords: User-selected keywords
+        search_results: Web search results for selected keywords
         blog_markdown: Generated blog in markdown
         image_urls: Generated/fetched image URLs
         html_content: Final HTML output
@@ -132,6 +139,7 @@ class BlogState(TypedDict, total=False):
     analyzed_content: dict
     suggested_keywords: list[str]
     selected_keywords: list[str]
+    search_results: list[dict]
     blog_markdown: str
     image_urls: list[str]
 

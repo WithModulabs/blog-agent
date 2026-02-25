@@ -9,7 +9,7 @@ from typing import Optional
 import httpx
 from bs4 import BeautifulSoup
 
-from casts.blog_writer.modules.state import ImageProvider, ScraperType
+from casts.blog_writer.modules.state import ImageProvider, ScraperType, SearchProvider
 
 # =============================================================================
 # Web Scraping Tools
@@ -85,9 +85,7 @@ async def _extract_naver_blog_content(page) -> str:
     """
     try:
         # Wait for iframe to load
-        iframe_element = await page.wait_for_selector(
-            "iframe#mainFrame", timeout=10000
-        )
+        iframe_element = await page.wait_for_selector("iframe#mainFrame", timeout=10000)
         if iframe_element:
             frame = await iframe_element.content_frame()
             if frame:
@@ -145,6 +143,112 @@ def _is_js_rendered_site(url: str) -> bool:
         "brunch.co.kr",
     ]
     return any(site in url for site in js_sites)
+
+
+# =============================================================================
+# Web Search Tools
+# =============================================================================
+
+
+async def search_with_tavily(
+    query: str, max_results: int = 3, api_key: str | None = None
+) -> list[dict]:
+    """Search the web using Tavily API.
+
+    Uses langchain-tavily TavilySearch tool (LangChain v1).
+
+    Args:
+        query: Search query string
+        max_results: Maximum number of results to return
+        api_key: Optional Tavily API key (falls back to env var)
+
+    Returns:
+        List of search results with url, title, content
+    """
+    from langchain_tavily import TavilySearch
+    from langchain_tavily._utilities import TavilySearchAPIWrapper
+
+    tavily_key = api_key or os.getenv("TAVILY_API_KEY")
+    if not tavily_key:
+        raise ValueError("TAVILY_API_KEY가 설정되어 있지 않습니다.")
+
+    wrapper = TavilySearchAPIWrapper(tavily_api_key=tavily_key)
+    tool = TavilySearch(
+        max_results=max_results,
+        api_wrapper=wrapper,
+    )
+
+    results = await tool.ainvoke({"query": query})
+
+    # Normalize results to a consistent format
+    if isinstance(results, dict) and "results" in results:
+        # TavilySearch returns {"query": ..., "results": [...]}
+        return [
+            {
+                "url": r.get("url", ""),
+                "title": r.get("title", ""),
+                "content": r.get("content", ""),
+            }
+            for r in results["results"]
+        ]
+    if isinstance(results, str):
+        return [{"content": results, "url": "", "title": ""}]
+    if isinstance(results, list):
+        return [
+            {
+                "url": r.get("url", ""),
+                "title": r.get("title", ""),
+                "content": r.get("content", ""),
+            }
+            for r in results
+        ]
+    return []
+
+
+async def web_search(
+    keywords: list[str],
+    provider: SearchProvider = SearchProvider.TAVILY,
+    max_results_per_keyword: int = 3,
+    api_key: str | None = None,
+) -> list[dict]:
+    """Search the web for multiple keywords.
+
+    Args:
+        keywords: List of keywords to search
+        provider: Search provider to use
+        max_results_per_keyword: Max results per keyword
+        api_key: Optional API key
+
+    Returns:
+        List of all search results with keyword, url, title, content
+    """
+    all_results = []
+
+    for keyword in keywords:
+        try:
+            if provider == SearchProvider.TAVILY:
+                results = await search_with_tavily(
+                    query=keyword,
+                    max_results=max_results_per_keyword,
+                    api_key=api_key,
+                )
+            else:
+                raise ValueError(f"지원하지 않는 검색 제공자: {provider}")
+
+            for result in results:
+                result["keyword"] = keyword
+                all_results.append(result)
+        except Exception as e:
+            all_results.append(
+                {
+                    "keyword": keyword,
+                    "url": "",
+                    "title": "",
+                    "content": f"검색 실패: {e}",
+                }
+            )
+
+    return all_results
 
 
 # =============================================================================
@@ -246,7 +350,9 @@ async def fetch_image_pexels(query: str) -> str:
         return ""
 
 
-def _get_available_image_provider(requested_provider: ImageProvider) -> Optional[ImageProvider]:
+def _get_available_image_provider(
+    requested_provider: ImageProvider,
+) -> Optional[ImageProvider]:
     """Determine available image provider based on API keys.
 
     Priority: Requested -> DALL-E -> Unsplash -> Pexels -> Stability
@@ -292,7 +398,9 @@ async def generate_image(
     active_provider = _get_available_image_provider(provider)
 
     if active_provider is None:
-        raise ValueError("사용 가능한 이미지 제공자 API 키가 없습니다. 이미지 생성을 건너뜁니다.")
+        raise ValueError(
+            "사용 가능한 이미지 제공자 API 키가 없습니다. 이미지 생성을 건너뜁니다."
+        )
 
     if active_provider == ImageProvider.DALLE:
         return await generate_image_dalle(prompt)

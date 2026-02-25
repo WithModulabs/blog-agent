@@ -51,7 +51,7 @@ def _get_key_for_provider(
             return api_keys.get_google_key()
         elif provider == LLMProvider.OPENROUTER:
             return api_keys.get_openrouter_key()
-    
+
     # Fallback to environment variables
     if provider == LLMProvider.OPENAI:
         return os.getenv("OPENAI_API_KEY")
@@ -77,7 +77,12 @@ def _get_available_provider(
         return requested_provider
 
     # Fallback cascade
-    for fallback in [LLMProvider.OPENAI, LLMProvider.GOOGLE, LLMProvider.ANTHROPIC, LLMProvider.OPENROUTER]:
+    for fallback in [
+        LLMProvider.OPENAI,
+        LLMProvider.GOOGLE,
+        LLMProvider.ANTHROPIC,
+        LLMProvider.OPENROUTER,
+    ]:
         if _get_key_for_provider(fallback, api_keys):
             return fallback
 

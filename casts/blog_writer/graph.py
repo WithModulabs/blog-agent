@@ -1,9 +1,9 @@
 """Entry point for the Blog Writer graph.
 
-Assembles 8 nodes into a Sequential + Human-in-the-loop graph:
+Assembles 9 nodes into a Sequential + Human-in-the-loop graph:
 START → FetchContent → AnalyzeContent → SuggestKeywords →
-HumanSelectKeywords (interrupt) → WriteBlog → OptimizeSEO →
-GenerateImages → ConvertToHTML → END
+HumanSelectKeywords (interrupt) → WebResearch → WriteBlog →
+OptimizeSEO → GenerateImages → ConvertToHTML → END
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -17,6 +17,7 @@ from casts.blog_writer.modules.nodes import (
     HumanSelectKeywords,
     OptimizeSEO,
     SuggestKeywords,
+    WebResearch,
     WriteBlog,
 )
 from casts.blog_writer.modules.state import BlogState, InputState, OutputState
@@ -52,6 +53,7 @@ class BlogWriterGraph(BaseGraph):
         builder.add_node("analyze_content", AnalyzeContent())
         builder.add_node("suggest_keywords", SuggestKeywords())
         builder.add_node("human_select_keywords", HumanSelectKeywords())
+        builder.add_node("web_research", WebResearch())
         builder.add_node("write_blog", WriteBlog())
         builder.add_node("optimize_seo", OptimizeSEO())
         builder.add_node("generate_images", GenerateImages())
@@ -62,7 +64,8 @@ class BlogWriterGraph(BaseGraph):
         builder.add_edge("fetch_content", "analyze_content")
         builder.add_edge("analyze_content", "suggest_keywords")
         builder.add_edge("suggest_keywords", "human_select_keywords")
-        builder.add_edge("human_select_keywords", "write_blog")
+        builder.add_edge("human_select_keywords", "web_research")
+        builder.add_edge("web_research", "write_blog")
         builder.add_edge("write_blog", "optimize_seo")
         builder.add_edge("optimize_seo", "generate_images")
         builder.add_edge("generate_images", "convert_to_html")

@@ -12,13 +12,16 @@
 
 ## 아키텍처 다이어그램
 
+> 키워드 선택 후 Tavily 웹 리서치를 거쳐 최신 정보를 반영한 블로그를 작성합니다.
+
 ```mermaid
 graph TD
     START([START]) --> FetchContent
     FetchContent --> AnalyzeContent
     AnalyzeContent --> SuggestKeywords
     SuggestKeywords --> HumanSelectKeywords
-    HumanSelectKeywords --> WriteBlog
+    HumanSelectKeywords --> WebResearch
+    WebResearch --> WriteBlog
     WriteBlog --> OptimizeSEO
     OptimizeSEO --> GenerateImages
     GenerateImages --> ConvertToHTML
@@ -63,6 +66,7 @@ class BlogState(TypedDict):
     analyzed_content: dict        # 분석된 핵심 내용
     suggested_keywords: list[str] # 제안된 키워드
     selected_keywords: list[str]  # 선택된 키워드
+    search_results: list[dict]    # 웹 리서치 결과
     blog_markdown: str            # 블로그 마크다운 초안
     image_urls: list[str]         # 이미지 URL들
     
@@ -79,7 +83,8 @@ class BlogState(TypedDict):
 | `AnalyzeContent` | 핵심 내용 분석 및 요약 | raw_content | analyzed_content |
 | `SuggestKeywords` | 키워드 3개 제안 | analyzed_content, user_keywords | suggested_keywords |
 | `HumanSelectKeywords` | 사용자 키워드 선택 (interrupt) | suggested_keywords | selected_keywords |
-| `WriteBlog` | 블로그 마크다운 작성 | analyzed_content, selected_keywords | blog_markdown |
+| `WebResearch` | 선택된 키워드로 웹 리서치 (Tavily) | selected_keywords | search_results |
+| `WriteBlog` | 블로그 마크다운 작성 | analyzed_content, selected_keywords, search_results | blog_markdown |
 | `OptimizeSEO` | SEO 메타 정보 생성 | blog_markdown, selected_keywords | seo_meta |
 | `GenerateImages` | 이미지 생성/수집 | analyzed_content | image_urls |
 | `ConvertToHTML` | 최종 HTML 변환 | blog_markdown, image_urls, seo_meta | html_content |
@@ -93,6 +98,7 @@ class BlogState(TypedDict):
 langchain-openai = "*"
 langchain-anthropic = "*"
 langchain-google-genai = "*"
+langchain-tavily = "*"
 beautifulsoup4 = "*"
 playwright = "*"
 openai = "*"       # DALL-E
@@ -107,6 +113,9 @@ markdown = "*"     # MD to HTML
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 GOOGLE_API_KEY=
+
+# Web Search
+TAVILY_API_KEY=
 
 # Image Generation (사용자 선택)
 STABILITY_API_KEY=
@@ -131,6 +140,9 @@ class ImageProvider(str, Enum):
 class ScraperType(str, Enum):
     BEAUTIFULSOUP = "beautifulsoup"
     PLAYWRIGHT = "playwright"
+
+class SearchProvider(str, Enum):
+    TAVILY = "tavily"
 
 class BlogWriterConfig(BaseModel):
     llm_provider: LLMProvider = LLMProvider.OPENAI

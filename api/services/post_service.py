@@ -6,7 +6,7 @@ from api.schemas.post import PostCreate, PostUpdate, PostResponse
 
 class PostService:
     """블로그 포스트 서비스 (인메모리 저장소)"""
-    
+
     # 인메모리 저장소 (데모용)
     _posts: dict[int, dict] = {}
     _counter: int = 0
@@ -50,32 +50,33 @@ class PostService:
     ) -> List[PostResponse]:
         """포스트 목록 조회"""
         posts = list(cls._posts.values())
-        
+
         if search:
             posts = [
-                p for p in posts
+                p
+                for p in posts
                 if search.lower() in p["title"].lower()
                 or search.lower() in p["content"].lower()
             ]
-        
+
         posts = sorted(posts, key=lambda x: x["created_at"], reverse=True)
-        return [PostResponse(**p) for p in posts[skip:skip + limit]]
+        return [PostResponse(**p) for p in posts[skip : skip + limit]]
 
     @classmethod
     def update(cls, post_id: int, post_update: PostUpdate) -> Optional[PostResponse]:
         """포스트 수정"""
         if post_id not in cls._posts:
             return None
-        
+
         post_data = cls._posts[post_id]
         update_dict = post_update.model_dump(exclude_unset=True)
-        
+
         for key, value in update_dict.items():
             post_data[key] = value
-        
+
         post_data["updated_at"] = datetime.now()
         cls._posts[post_id] = post_data
-        
+
         return PostResponse(**post_data)
 
     @classmethod
